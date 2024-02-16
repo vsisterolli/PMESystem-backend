@@ -1,0 +1,67 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Action {
+  PROMOTE
+  DEMOTE
+  FIRE
+}
+
+enum HierarchyKind {
+  EXECUTIVE
+  MILITARY
+}
+
+model User {
+  nick String @id @db.VarChar(30)
+  password String? @db.VarChar(240)
+  role String @db.VarChar(30) @default("Soldado")
+  discord String? @db.VarChar(30)
+  isAccountActive Boolean @default(false)
+  permissionsObtained PermissionsObtained[]
+}
+
+model PermissionsObtained {
+  id Int @id @default(autoincrement())
+  user User @relation(fields: [userNick], references: [nick])
+  userNick String
+  permission String
+}
+
+model PermissionsRequired {
+  id Int @id @default(autoincrement())
+  action Action
+  name String
+  Role Roles @relation(fields: [RoleName], references: [name])
+  RoleName String
+}
+
+model Roles {
+  id Int @id @default(autoincrement())
+  hierachyPosition Int
+  hierarchyKind HierarchyKind
+  name String @unique @db.VarChar(30)
+  promotesUntilRolePosition Int
+  demoteUntilRolePosition Int
+  fireUntiRolePosition Int
+  permissionsRequired PermissionsRequired[]
+}
+
+model GeneralRequirements {
+  id Int @id
+}
+
+model Session {
+  id String @id @default(uuid())
+  code String @db.VarChar(10)
+  expiresAt DateTime
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
