@@ -22,7 +22,11 @@ export class UsersController {
         return res.status(HttpStatus.CONFLICT).send([e.message]);
       }
 
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send([e.message])
+      if(e.message === "Usuário não existente no habbo.") {
+        return res.status(HttpStatus.BAD_REQUEST).send(e.message)
+      }
+
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send()
     }
   }
 

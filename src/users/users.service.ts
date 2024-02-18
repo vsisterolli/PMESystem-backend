@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { Prisma, Session, User } from '@prisma/client';
 import { ActivateUserDTO } from './users.dtos';
 import * as bcrypt from 'bcrypt';
 import { HabboService } from '../habbo/habbo.service';
+import { ValidationError } from 'class-validator';
+
 
 @Injectable()
 export class UsersService {
@@ -71,7 +73,7 @@ export class UsersService {
     if(!confirmSession)
       error = "Sessão inválida";
     if(confirmSession.expiresAt < new Date())
-      error = "Sessão expirada";
+      error = "Sessão expirada! Um novo código de missão foi gerado.";
 
     return {
       confirmSession,
@@ -100,24 +102,27 @@ export class UsersService {
     }) as User
 
     if(isAnExistentUser)
-      throw new Error("Usuário já criado.")
+      throw new BadRequestException(["Usuário já criado."])
 
+
+    await this.habboServices.findHabboUser(data.nick)
     try {
-      await this.habboServices.findHabboUser(data.nick)
+      await this.prisma.user.create({
+        data
+      });
     } catch(e) {
-      throw new Error("Usuário não existente no habbo.")
+      console.log(e)
     }
 
-    return this.prisma.user.create({
-      data
-    });
+
+    return;
   }
 
   async activateUser(data: ActivateUserDTO) {
 
     let validationError = await this.validateInactiveUser(data.nick)
     if(validationError !== "")
-      throw new Error(validationError)
+      throw new BadRequestException(validationError)
 
     const validationErrors = this.validatePassword(data.password);
     if(validationErrors.length) {
@@ -128,17 +133,13 @@ export class UsersService {
 
     const { confirmSession, error } = await this.validateSession(data.sessionId);
     if(error)
-      throw new Error(error)
+      throw new BadRequestException(error)
 
-    let habboUser;
-    try {
-      habboUser = await this.habboServices.findHabboUser(data.nick);
-    } catch(e) {
-      throw new Error("Usuário inexistente no habbo.")
-    }
 
-    if(habboUser.motto.includes(`DPH-ATIVAR-${confirmSession.code}`) === false)
-      throw new Error("Missão incorreta! Lembre-se de trocar sua missão para DPH-ATIVAR-" + confirmSession.code);
+    let habboUser = await this.habboServices.findHabboUser(data.nick);
+
+    if(habboUser.motto.includes(`PME${confirmSession.code}`) === false)
+      throw new BadRequestException("Missão incorreta! Lembre-se de trocar sua missão para PME" + confirmSession.code);
 
     const salt = await bcrypt.genSalt()
     const hash = await bcrypt.hash(data.password, salt)

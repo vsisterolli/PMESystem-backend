@@ -6,9 +6,11 @@ generator client {
 }
 
 enum Action {
+  BE_PROMOTED
   PROMOTE
   DEMOTE
   FIRE
+  GRATIFY
 }
 
 enum HierarchyKind {
@@ -16,39 +18,72 @@ enum HierarchyKind {
   MILITARY
 }
 
+enum PermissionType {
+  COURSE
+  FUNCTION
+}
+
+enum ActivityType {
+  PROMOTION
+  DEMOTION
+  FIRE
+  BANNING
+  LICENSE
+}
+
 model User {
   nick String @id @db.VarChar(30)
   password String? @db.VarChar(240)
-  role String @db.VarChar(30) @default("Soldado")
   discord String? @db.VarChar(30)
+  lastPromoted DateTime @default(now())
+  advNum Int @default(0)
   isAccountActive Boolean @default(false)
+  isAdmin Boolean @default(false)
+  role Roles @relation(fields: [roleName], references: [name])
+  roleName String @default("Soldado")
   permissionsObtained PermissionsObtained[]
+}
+
+model ActivityLog {
+  id Int @id @default(autoincrement())
+  type ActivityType
+  target String
+  author String
+  description String @db.VarChar(1400)
+  user User @relation(fields: [target, author], references: [nick, nick])
 }
 
 model PermissionsObtained {
   id Int @id @default(autoincrement())
   user User @relation(fields: [userNick], references: [nick])
   userNick String
-  permission String
+  name String
+  type PermissionType
+  @@unique([userNick, name], name: "permissionIdentifier")
 }
 
 model PermissionsRequired {
   id Int @id @default(autoincrement())
   action Action
   name String
-  Role Roles @relation(fields: [RoleName], references: [name])
-  RoleName String
+  type PermissionType
+  role Roles @relation(fields: [roleName], references: [name])
+  roleName String
 }
 
 model Roles {
   id Int @id @default(autoincrement())
-  hierachyPosition Int
+  hierarchyPosition Int
   hierarchyKind HierarchyKind
   name String @unique @db.VarChar(30)
   promotesUntilRolePosition Int
   demoteUntilRolePosition Int
-  fireUntiRolePosition Int
+  fireUntilRolePosition Int
+  gratifyUntilRolePosition Int
+  daysToBePromoted Int
   permissionsRequired PermissionsRequired[]
+  users User[]
+  @@unique([hierarchyPosition, hierarchyKind], name: "roleIdentifierf")
 }
 
 model GeneralRequirements {

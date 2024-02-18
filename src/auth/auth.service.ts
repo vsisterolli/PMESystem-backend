@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import * as bcrypt from 'bcrypt';
 import { Prisma } from '@prisma/client';
+import { Request } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -16,13 +17,13 @@ export class AuthService {
 
   async signIn(nick: string, password: string): Promise<any> {
     const user = await this.usersService.findByName(nick);
-    if (user?.isAccountActive === false || bcrypt.compareSync(password, user.password) === false) {
-      throw new UnauthorizedException();
+    if (!user || user?.isAccountActive === false || bcrypt.compareSync(password, user.password) === false) {
+      throw new UnauthorizedException(["Combinação de usuário/senha inexistente."]);
     }
 
-    const payload = {  nick };
+    const payload = { nick };
     return {
-      access_token: await this.jwtService.signAsync(payload),
+      access_token: "Bearer " + await this.jwtService.signAsync(payload),
     };
   }
 
@@ -44,8 +45,29 @@ export class AuthService {
     })
   }
 
-  async createRole(data: Prisma.RolesCreateArgs) {
-    this.prisma.roles.create({
+  async createRole(request: Request, data: Prisma.RolesCreateInput) {
+    if(!request["user"] || request["user"].isAdmin === false)
+      throw new UnauthorizedException(["Sem permissão para realizar essa ação."]);
+
+    return this.prisma.roles.create({
+      data
+    })
+  }
+
+  async createPermission(request: Request, data: Prisma.PermissionsRequiredCreateInput) {
+    if(!request["user"] || request["user"].isAdmin === false)
+      throw new UnauthorizedException(["Sem permissão para realizar essa ação."]);
+
+    return this.prisma.permissionsRequired.create({
+      data
+    })
+  }
+
+  async givePermission(request: Request, data: Prisma.PermissionsObtainedCreateInput) {
+    if(!request["user"] || request["user"].isAdmin === false)
+      throw new UnauthorizedException(["Sem permissão para realizar essa ação."]);
+
+    return this.prisma.permissionsObtained.create({
       data
     })
   }

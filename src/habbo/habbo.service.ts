@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import axios from 'axios';
 
 type HabboUser = {
@@ -14,7 +14,8 @@ export class HabboService {
     try {
       return (await axios.get(`https://www.habbo.com.br/api/public/users?name=${nick}`)).data
     } catch(e) {
-      throw new Error("Usuário inexistente no habbo")
+      console.log(e)
+      throw new BadRequestException(["Usuário inexistente no habbo"])
     }
   }
 }
