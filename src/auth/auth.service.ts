@@ -1,74 +1,89 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
-import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../prisma.service';
-import * as bcrypt from 'bcrypt';
-import { Prisma } from '@prisma/client';
-import { Request } from 'express';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { UsersService } from "../users/users.service";
+import { JwtService } from "@nestjs/jwt";
+import { PrismaService } from "../prisma.service";
+import * as bcrypt from "bcrypt";
+import { Prisma } from "@prisma/client";
+import { Request } from "express";
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private usersService: UsersService,
-    private jwtService: JwtService,
-    private prisma: PrismaService
-) {}
+    constructor(
+        private usersService: UsersService,
+        private jwtService: JwtService,
+        private prisma: PrismaService
+    ) {}
 
+    async signIn(nick: string, password: string): Promise<any> {
+        const user = await this.usersService.findByName(nick);
+        if (
+            !user ||
+            user?.isAccountActive === false ||
+            bcrypt.compareSync(password, user.password) === false
+        ) {
+            throw new UnauthorizedException([
+                "Combinação de usuário/senha inexistente."
+            ]);
+        }
 
-  async signIn(nick: string, password: string): Promise<any> {
-    const user = await this.usersService.findByName(nick);
-    if (!user || user?.isAccountActive === false || bcrypt.compareSync(password, user.password) === false) {
-      throw new UnauthorizedException(["Combinação de usuário/senha inexistente."]);
+        const payload = { nick };
+        return {
+            access_token: "Bearer " + (await this.jwtService.signAsync(payload))
+        };
     }
 
-    const payload = { nick };
-    return {
-      access_token: "Bearer " + await this.jwtService.signAsync(payload),
-    };
-  }
+    async createAuthSession() {
+        // generates a 5 digits code from 00000 to 99999
+        const codeBase = Math.floor(Math.random() * 99999);
+        const code = codeBase.toString().padStart(5, "0");
 
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 10);
 
-  async createAuthSession() {
+        return this.prisma.session.create({
+            data: {
+                code,
+                expiresAt
+            }
+        });
+    }
 
-    // generates a 5 digits code from 00000 to 99999
-    const codeBase = Math.floor(Math.random() * 99999)
-    const code = codeBase.toString().padStart(5, '0')
+    async createRole(request: Request, data: Prisma.RolesCreateInput) {
+        if (!request["user"] || request["user"].isAdmin === false)
+            throw new UnauthorizedException([
+                "Sem permissão para realizar essa ação."
+            ]);
 
-    const expiresAt = new Date()
-    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+        return this.prisma.roles.create({
+            data
+        });
+    }
 
-    return this.prisma.session.create({
-      data: {
-        code,
-        expiresAt
-      }
-    })
-  }
+    async createPermission(
+        request: Request,
+        data: Prisma.PermissionsRequiredCreateInput
+    ) {
+        if (!request["user"] || request["user"].isAdmin === false)
+            throw new UnauthorizedException([
+                "Sem permissão para realizar essa ação."
+            ]);
 
-  async createRole(request: Request, data: Prisma.RolesCreateInput) {
-    if(!request["user"] || request["user"].isAdmin === false)
-      throw new UnauthorizedException(["Sem permissão para realizar essa ação."]);
+        return this.prisma.permissionsRequired.create({
+            data
+        });
+    }
 
-    return this.prisma.roles.create({
-      data
-    })
-  }
+    async givePermission(
+        request: Request,
+        data: Prisma.PermissionsObtainedCreateInput
+    ) {
+        if (!request["user"] || request["user"].isAdmin === false)
+            throw new UnauthorizedException([
+                "Sem permissão para realizar essa ação."
+            ]);
 
-  async createPermission(request: Request, data: Prisma.PermissionsRequiredCreateInput) {
-    if(!request["user"] || request["user"].isAdmin === false)
-      throw new UnauthorizedException(["Sem permissão para realizar essa ação."]);
-
-    return this.prisma.permissionsRequired.create({
-      data
-    })
-  }
-
-  async givePermission(request: Request, data: Prisma.PermissionsObtainedCreateInput) {
-    if(!request["user"] || request["user"].isAdmin === false)
-      throw new UnauthorizedException(["Sem permissão para realizar essa ação."]);
-
-    return this.prisma.permissionsObtained.create({
-      data
-    })
-  }
+        return this.prisma.permissionsObtained.create({
+            data
+        });
+    }
 }
