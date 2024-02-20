@@ -61,6 +61,8 @@ export class UsersService {
 
         if (isAnExistentUser === null)
             return "Usuário inexistente. Você provavelmente ainda não se alistou, procure nossa base no Habbo Hotel!";
+        if(isAnExistentUser.roleName === "Recruta")
+            return "Você precisa se alistar antes de ativar a conta"
 
         if (isAnExistentUser.isAccountActive) return "Usuário já ativo.";
 
@@ -100,6 +102,7 @@ export class UsersService {
                 lastPromoted: true,
                 createdAt: true,
                 discord: true,
+                advNum: true,
                 permissionsObtained: {
                     select: {
                         name: true,

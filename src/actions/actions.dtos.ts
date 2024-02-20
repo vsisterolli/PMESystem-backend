@@ -7,3 +7,27 @@ export class PromoteDTO {
     @IsNotEmpty()
     description: string;
 }
+
+export class DemoteDTO {
+    @IsNotEmpty()
+    demotedNick: string;
+
+    @IsNotEmpty()
+    description: string;
+}
+
+export class FireDTO {
+    @IsNotEmpty()
+    firedNick: string;
+
+    @IsNotEmpty()
+    description: string;
+}
+
+export class WarnDTO {
+    @IsNotEmpty()
+    warnedNick: string;
+
+    @IsNotEmpty()
+    description: string;
+}

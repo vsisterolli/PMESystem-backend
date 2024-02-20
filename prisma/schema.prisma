@@ -11,6 +11,7 @@ enum Action {
   DEMOTE
   FIRE
   GRATIFY
+  WARN
 }
 
 enum HierarchyKind {
@@ -29,6 +30,7 @@ enum ActivityType {
   FIRE
   BANNING
   LICENSE
+  WARNING
 }
 
 model User {
@@ -51,9 +53,11 @@ model ActivityLog {
   type              ActivityType
   target            String
   author            String
+  isActive          Boolean      @default(true)
   description       String       @db.VarChar(4000)
   user              User         @relation(fields: [target], references: [nick])
   createdAt         DateTime     @default(now())
+  expiresAt         DateTime?
   newRole           String?
   oldWarningsAmount String?
 }

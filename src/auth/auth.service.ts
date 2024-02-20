@@ -95,7 +95,7 @@ export class AuthService {
         });
     }
 
-    async givePermifssion(
+    async givePermission(
         request: Request,
         data: Prisma.PermissionsObtainedCreateInput
     ) {
