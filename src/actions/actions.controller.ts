@@ -26,6 +26,7 @@ export class ActionsController {
         try {
             await this.actionsService.promoteUser(
                 promoteUserDTO.promotedNick,
+                promoteUserDTO.description,
                 req
             );
             res.send();

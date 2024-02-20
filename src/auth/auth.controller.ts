@@ -17,6 +17,7 @@ import {
 import { AuthService } from "./auth.service";
 import { AuthGuard } from "./auth.guard";
 import { Request, Response } from "express";
+import * as process from 'process';
 
 @Controller("auth")
 export class AuthController {
@@ -24,16 +25,20 @@ export class AuthController {
 
     @Post("login")
     async signIn(@Body() signInDto: SignInDTO, @Res() res: Response) {
-        const jwt = await this.authService.signIn(
+        const data = await this.authService.signIn(
             signInDto.nick,
             signInDto.password
         );
-        res.cookie("token", jwt.access_token, {
+        res.cookie("token", data.access_token, {
+            maxAge: 7 * 24 * 60 * 60,
             httpOnly: true,
-            secure: true,
-            maxAge: 7 * 24 * 60 * 60
+            sameSite: 'lax',
+            secure: false
         });
-        return res.send();
+        if(process.env.LOCAL === "TRUE")
+            return res.send(data)
+
+        return res.send(data.userData);
     }
 
     @HttpCode(HttpStatus.CREATED)
@@ -87,6 +92,7 @@ export class AuthController {
             await this.authService.givePermission(req, givePermissionDTO);
             res.send();
         } catch (e) {
+            console.log(e)
             res.status(HttpStatus.UNAUTHORIZED).send(["Não autorizado."]);
         }
     }

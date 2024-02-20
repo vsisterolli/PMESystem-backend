@@ -16,9 +16,10 @@ export class AuthService {
 
     async signIn(nick: string, password: string): Promise<any> {
         const user = await this.usersService.findByName(nick);
+        if(!user || user.isAccountActive === false)
+            throw new UnauthorizedException(['Sua conta ainda está inativa, tente ativar na aba "ATIVAR CONTA"'])
         if (
             !user ||
-            user?.isAccountActive === false ||
             bcrypt.compareSync(password, user.password) === false
         ) {
             throw new UnauthorizedException([
@@ -27,8 +28,29 @@ export class AuthService {
         }
 
         const payload = { nick };
+        const userData = await this.prisma.user.findUnique({
+            where: {
+                nick
+            },
+            select: {
+                nick: true,
+                role: {
+                    select: {
+                        name: true
+                    }
+                },
+                permissionsObtained: {
+                    select: {
+                        name: true,
+                        type: true
+                    }
+                }
+            }
+        })
+
         return {
-            access_token: "Bearer " + (await this.jwtService.signAsync(payload))
+            access_token: "Bearer " + (await this.jwtService.signAsync(payload)),
+            userData
         };
     }
 
@@ -73,7 +95,7 @@ export class AuthService {
         });
     }
 
-    async givePermission(
+    async givePermifssion(
         request: Request,
         data: Prisma.PermissionsObtainedCreateInput
     ) {

@@ -18,8 +18,7 @@ export class HabboService {
                 )
             ).data;
         } catch (e) {
-            console.log(e);
-            throw new BadRequestException(["Usuário inexistente no habbo"]);
+            throw new BadRequestException("Usuário inexistente no habbo");
         }
     }
 }

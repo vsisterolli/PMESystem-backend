@@ -1,11 +1,24 @@
-import { Body, Controller, HttpStatus, Patch, Post, Res } from "@nestjs/common";
-import { Response } from "express";
+import { Body, Controller, Get, HttpStatus, Param, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { ActivateUserDTO, CreateUserDTO } from "./users.dtos";
 import { UsersService } from "./users.service";
+import { AuthGuard } from '../auth/auth.guard';
 
 @Controller("users")
 export class UsersController {
     constructor(private usersServices: UsersService) {}
+
+    @UseGuards(AuthGuard)
+    @Get('/recent')
+    async recentUsers() {
+        return this.usersServices.getRecentUsers();
+    }
+
+    @UseGuards(AuthGuard)
+    @Get('/profile/:nick')
+    async userProfile(@Param('nick') nick)  {
+        return this.usersServices.getUserProfile(nick);
+    }
 
     @Post()
     async createUser(
@@ -21,7 +34,7 @@ export class UsersController {
             }
 
             if (e.message === "Usuário já criado.") {
-                return res.status(HttpStatus.CONFLICT).send([e.message]);
+                return res.status(HttpStatus.CONFLICT).send(e.message);
             }
 
             if (e.message === "Usuário não existente no habbo.") {

@@ -20,15 +20,20 @@ export class AuthGuard implements CanActivate {
         const request = context.switchToHttp().getRequest();
 
         try {
-            const token = this.extractTokenFromCookies(request);
+            let token;
+            if(process.env.LOCAL === "TRUE")
+                token = this.extractTokenFromHeader(request);
+            else
+                token = this.extractTokenFromCookies(request);
 
             if (!token) {
-                throw new UnauthorizedException();
+                throw new UnauthorizedException("");
             }
 
             const payload = await this.jwtService.verifyAsync(token, {
                 secret: process.env.JWT_SECRET
             });
+
             request["user"] = await this.prismaService.user.findUnique({
                 where: {
                     nick: payload.nick
@@ -43,5 +48,10 @@ export class AuthGuard implements CanActivate {
     private extractTokenFromCookies(request: Request): string | undefined {
         const [, token] = request.cookies.token.split("Bearer ");
         return token;
+    }
+
+    private extractTokenFromHeader(request: Request) {
+        const [type, token] = request.headers.authorization?.split(' ') ?? [];
+        return type === 'Bearer' ? token : undefined;
     }
 }

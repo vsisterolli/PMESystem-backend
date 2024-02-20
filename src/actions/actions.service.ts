@@ -35,7 +35,7 @@ export class ActionsService {
         return false;
     }
 
-    async promoteUser(nick: string, request: Request) {
+    async promoteUser(nick: string, desciption: string, request: Request) {
         const promotedUserPromise = this.prismaService.user.findUnique({
             where: {
                 nick
@@ -65,9 +65,9 @@ export class ActionsService {
             promotedUser.role.hierarchyPosition >
                 promoter.role.promotesUntilRolePosition
         ) {
-            throw new UnauthorizedException([
+            throw new UnauthorizedException(
                 "Você não pode promover esse usuário."
-            ]);
+            );
         }
 
         const daysInRole = moment().diff(
@@ -75,9 +75,9 @@ export class ActionsService {
             "days"
         );
         if (daysInRole < promotedUser.role.daysToBePromoted) {
-            throw new ForbiddenException([
+            throw new ForbiddenException(
                 "Esse usuário ainda não atingiu o tempo mínimo para ser promovido."
-            ]);
+            );
         }
 
         const promotedRequiredCoursesPromise =
@@ -122,29 +122,29 @@ export class ActionsService {
             promoterObtainedPermissionsPromise
         ]);
 
-        // @ts-expect-error
+        // @ts-ignore
         if (
             this.missingPermissions(
                 promotedRequiredCourses,
                 promotedObtainedPermissions
             )
         ) {
-            throw new ForbiddenException([
+            throw new ForbiddenException(
                 "Esse usuário ainda não tem os cursos/permissões necessárias para ser promovido."
-            ]);
+            );
         }
 
-        // @ts-expect-error
+        // @ts-ignore
         if (
             this.missingPermissions(
                 promoterRequiredCourses,
                 promoterObtainedPermissions
             )
         ) {
-            throw new UnauthorizedException(["Você ainda não pode promover."]);
+            throw new UnauthorizedException("Você ainda não pode promover.");
         }
 
-        // @ts-expect-error
+        // @ts-ignore
         const nextRole: Roles = await this.prismaService.roles.findUnique({
             where: {
                 roleIdentifier: {
@@ -155,11 +155,11 @@ export class ActionsService {
         });
 
         if (!nextRole)
-            throw new ForbiddenException([
+            throw new ForbiddenException(
                 "Esse usuário não pode ser promovido."
-            ]);
+            );
 
-        await this.prismaService.user.update({
+        const promotePromise = this.prismaService.user.update({
             where: {
                 nick: promotedUser.nick
             },
@@ -167,5 +167,17 @@ export class ActionsService {
                 roleName: nextRole.name
             }
         });
+
+        const registerPromise = this.prismaService.activityLog.create({
+            data: {
+                target: promotedUser.nick,
+                author: promoter.nick,
+                type: "PROMOTION",
+                description: desciption,
+                newRole: nextRole.name
+            }
+        })
+
+        await Promise.all([promotePromise, registerPromise])
     }
 }

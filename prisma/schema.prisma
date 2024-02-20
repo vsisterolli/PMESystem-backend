@@ -32,58 +32,67 @@ enum ActivityType {
 }
 
 model User {
-  nick String @id @db.VarChar(30)
-  password String? @db.VarChar(240)
-  discord String? @db.VarChar(30)
-  lastPromoted DateTime @default(now())
-  advNum Int @default(0)
-  isAccountActive Boolean @default(false)
-  isAdmin Boolean @default(false)
-  role Roles @relation(fields: [roleName], references: [name])
-  roleName String @default("Soldado")
+  nick                String                @id @db.VarChar(30)
+  password            String?               @db.VarChar(240)
+  discord             String?               @db.VarChar(30)
+  lastPromoted        DateTime              @default(now())
+  createdAt           DateTime              @default(now())
+  advNum              Int                   @default(0)
+  isAccountActive     Boolean               @default(false)
+  isAdmin             Boolean               @default(false)
+  role                Roles?                @relation(fields: [roleName], references: [name])
+  roleName            String?
   permissionsObtained PermissionsObtained[]
+  ActivityLog         ActivityLog[]
 }
 
 model ActivityLog {
-  id Int @id @default(autoincrement())
-  type ActivityType
-  target String
-  author String
-  description String @db.VarChar(1400)
-  user User @relation(fields: [target, author], references: [nick, nick])
+  id                Int          @id @default(autoincrement())
+  type              ActivityType
+  target            String
+  author            String
+  description       String       @db.VarChar(4000)
+  user              User         @relation(fields: [target], references: [nick])
+  createdAt         DateTime     @default(now())
+  newRole           String?
+  oldWarningsAmount String?
 }
 
 model PermissionsObtained {
-  id Int @id @default(autoincrement())
-  user User @relation(fields: [userNick], references: [nick])
-  userNick String
-  name String
-  type PermissionType
+  id        Int            @id @default(autoincrement())
+  user      User           @relation(fields: [userNick], references: [nick])
+  userNick  String
+  name      String
+  fullName  String
+  type      PermissionType
+  createdAt DateTime       @default(now())
+
   @@unique([userNick, name], name: "permissionIdentifier")
 }
 
 model PermissionsRequired {
-  id Int @id @default(autoincrement())
-  action Action
-  name String
-  type PermissionType
-  role Roles @relation(fields: [roleName], references: [name])
+  id       Int            @id @default(autoincrement())
+  action   Action
+  name     String
+  type     PermissionType
+  role     Roles          @relation(fields: [roleName], references: [name])
   roleName String
 }
 
 model Roles {
-  id Int @id @default(autoincrement())
-  hierarchyPosition Int
-  hierarchyKind HierarchyKind
-  name String @unique @db.VarChar(30)
+  id                        Int                   @id @default(autoincrement())
+  hierarchyPosition         Int
+  hierarchyKind             HierarchyKind
+  name                      String                @unique @db.VarChar(30)
   promotesUntilRolePosition Int
-  demoteUntilRolePosition Int
-  fireUntilRolePosition Int
-  gratifyUntilRolePosition Int
-  daysToBePromoted Int
-  permissionsRequired PermissionsRequired[]
-  users User[]
-  @@unique([hierarchyPosition, hierarchyKind], name: "roleIdentifierf")
+  demoteUntilRolePosition   Int
+  fireUntilRolePosition     Int
+  gratifyUntilRolePosition  Int
+  daysToBePromoted          Int
+  permissionsRequired       PermissionsRequired[]
+  users                     User[]
+
+  @@unique([hierarchyPosition, hierarchyKind], name: "roleIdentifier")
 }
 
 model GeneralRequirements {
@@ -91,8 +100,8 @@ model GeneralRequirements {
 }
 
 model Session {
-  id String @id @default(uuid())
-  code String @db.VarChar(10)
+  id        String   @id @default(uuid())
+  code      String   @db.VarChar(10)
   expiresAt DateTime
 }
 
