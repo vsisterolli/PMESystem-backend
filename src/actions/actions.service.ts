@@ -100,14 +100,14 @@ export class ActionsService {
         const promotedObtainedPermissionsPromise =
             this.prismaService.permissionsObtained.findMany({
                 where: {
-                    userNick: promotedUser.nick
+                    userId: promotedUser.id
                 }
             });
 
         const promoterObtainedPermissionsPromise =
             this.prismaService.permissionsObtained.findMany({
                 where: {
-                    userNick: promoter.nick
+                    userId: promoter.id
                 }
             });
 
@@ -171,7 +171,7 @@ export class ActionsService {
 
         const registerPromise = this.prismaService.activityLog.create({
             data: {
-                target: promotedUser.nick,
+                targetId: promotedUser.id,
                 author: promoter.nick,
                 type: "PROMOTION",
                 description: description,
@@ -230,7 +230,7 @@ export class ActionsService {
         const demoterObtainedPermissionsPromise =
           this.prismaService.permissionsObtained.findMany({
               where: {
-                  userNick: demoter.nick
+                  userId: demoter.id
               }
           });
 
@@ -281,7 +281,7 @@ export class ActionsService {
 
         const registerPromise = this.prismaService.activityLog.create({
             data: {
-                target: demotedUser.nick,
+                targetId: demotedUser.id,
                 author: demoter.nick,
                 type: "DEMOTION",
                 description: description,
@@ -337,7 +337,7 @@ export class ActionsService {
         const firerObtainedPermissionsPromise =
           this.prismaService.permissionsObtained.findMany({
               where: {
-                  userNick: firer.nick
+                  userId: firer.id
               }
           });
 
@@ -374,7 +374,7 @@ export class ActionsService {
 
         const registerPromise = this.prismaService.activityLog.create({
             data: {
-                target: firedUser.nick,
+                targetId: firedUser.id,
                 author: firer.nick,
                 type: "FIRE",
                 description: description,
@@ -384,7 +384,7 @@ export class ActionsService {
 
         const deletePermissionsPromise = this.prismaService.permissionsObtained.deleteMany({
             where: {
-                userNick: firedUser.nick
+                userId: firedUser.id
             }
         })
 
@@ -438,7 +438,7 @@ export class ActionsService {
         const warnerObtainedPermissionsPromise =
           this.prismaService.permissionsObtained.findMany({
               where: {
-                  userNick: warner.nick
+                  userId: warner.id
               }
           });
 
@@ -465,7 +465,7 @@ export class ActionsService {
 
         await this.prismaService.activityLog.create({
             data: {
-                target: warnedUser.nick,
+                targetId: warnedUser.id,
                 author: warner.nick,
                 type: "WARNING",
                 description: description
@@ -487,14 +487,14 @@ export class ActionsService {
             if(warnedUser.roleName === "Soldado")
                 await this.prismaService.permissionsObtained.deleteMany({
                     where: {
-                        userNick: warnedUser.nick
+                        userId: warnedUser.id
                     }
                 })
 
             await Promise.all([
                 this.prismaService.activityLog.create({
                     data: {
-                        target: warnedUser.nick,
+                        targetId: warnedUser.id,
                         author: "PME System",
                         type: (warnedUser.roleName === "Soldado" ? "FIRE" : "DEMOTION"),
                         description: "Acúmulo de 3 advertências.",
@@ -513,7 +513,7 @@ export class ActionsService {
                 }),
                 this.prismaService.activityLog.updateMany({
                     where: {
-                        target: warnedUser.nick,
+                        targetId: warnedUser.id,
                         type: "WARNING"
                     },
                     data: {

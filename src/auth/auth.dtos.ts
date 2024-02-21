@@ -53,6 +53,9 @@ export class GivePermissionDTO {
     name: string;
 
     @IsNotEmpty()
+    fullName: string;
+
+    @IsNotEmpty()
     type: "COURSE" | "FUNCTION";
 
     @IsNotEmpty()

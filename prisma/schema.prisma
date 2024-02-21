@@ -34,7 +34,8 @@ enum ActivityType {
 }
 
 model User {
-  nick                String                @id @db.VarChar(30)
+  id                  String                @id @default(uuid())
+  nick                String                @unique @db.VarChar(30)
   password            String?               @db.VarChar(240)
   discord             String?               @db.VarChar(30)
   lastPromoted        DateTime              @default(now())
@@ -49,13 +50,13 @@ model User {
 }
 
 model ActivityLog {
-  id                Int          @id @default(autoincrement())
+  id                String       @id @default(uuid())
   type              ActivityType
-  target            String
+  targetId          String
   author            String
   isActive          Boolean      @default(true)
   description       String       @db.VarChar(4000)
-  user              User         @relation(fields: [target], references: [nick])
+  user              User         @relation(fields: [targetId], references: [id])
   createdAt         DateTime     @default(now())
   expiresAt         DateTime?
   newRole           String?
@@ -63,24 +64,28 @@ model ActivityLog {
 }
 
 model PermissionsObtained {
-  id        Int            @id @default(autoincrement())
-  user      User           @relation(fields: [userNick], references: [nick])
-  userNick  String
+  id        String         @id @default(uuid())
+  user      User           @relation(fields: [userId], references: [id])
+  userId    String
   name      String
   fullName  String
   type      PermissionType
   createdAt DateTime       @default(now())
 
-  @@unique([userNick, name], name: "permissionIdentifier")
+  @@unique([userId, name], name: "permissionIdentifier")
 }
 
 model PermissionsRequired {
-  id       Int            @id @default(autoincrement())
-  action   Action
-  name     String
-  type     PermissionType
-  role     Roles          @relation(fields: [roleName], references: [name])
-  roleName String
+  id            Int            @id @default(autoincrement())
+  action        Action
+  name          String
+  type          PermissionType
+  role          Roles?         @relation(fields: [roleName], references: [name])
+  roleName      String?
+  hierarchyKind HierarchyKind?
+
+  @@unique([name, roleName], name: "roleSpecificIdentifier")
+  @@unique([name, hierarchyKind], name: "hierachySpecificIdentifier")
 }
 
 model Roles {

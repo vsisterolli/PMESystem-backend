@@ -1,10 +1,11 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from "../users/users.service";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../prisma.service";
 import * as bcrypt from "bcrypt";
-import { Prisma } from "@prisma/client";
+import { Prisma, User } from '@prisma/client';
 import { Request } from "express";
+import { CreatePermissionDTO, GivePermissionDTO } from './auth.dtos';
 
 @Injectable()
 export class AuthService {
@@ -83,7 +84,7 @@ export class AuthService {
 
     async createPermission(
         request: Request,
-        data: Prisma.PermissionsRequiredCreateInput
+        data: CreatePermissionDTO
     ) {
         if (!request["user"] || request["user"].isAdmin === false)
             throw new UnauthorizedException([
@@ -97,15 +98,29 @@ export class AuthService {
 
     async givePermission(
         request: Request,
-        data: Prisma.PermissionsObtainedCreateInput
+        data: GivePermissionDTO
     ) {
         if (!request["user"] || request["user"].isAdmin === false)
             throw new UnauthorizedException([
                 "Sem permissão para realizar essa ação."
             ]);
 
+        const user = await this.prisma.user.findUnique({
+            where: {
+                nick: data.userNick
+            }
+        })
+
+        if (!user)
+            throw new BadRequestException("Usuário não existente")
+
         return this.prisma.permissionsObtained.create({
-            data
+            data: {
+                userId: user.id,
+                name: data.name,
+                type: data.type,
+                fullName: data.fullName
+            }
         });
     }
 }

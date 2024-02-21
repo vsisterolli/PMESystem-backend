@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from "../prisma.service";
 import { Prisma, Session, User } from "@prisma/client";
 import { ActivateUserDTO } from "./users.dtos";
@@ -91,7 +91,7 @@ export class UsersService {
     }
 
     async getUserProfile(nick) {
-        return this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: {
                 nick
             },
@@ -116,6 +116,27 @@ export class UsersService {
                 }
             }
         })
+        if(!user) {
+            // @ts-ignore
+            const similarNicks = await this.prisma.user.findMany({
+                where: {
+                    nick: {
+                        contains: nick,
+                        mode: "insensitive"
+                    }
+                },
+                select: {
+                    nick: true,
+                    isAccountActive: true
+                },
+                orderBy: {
+                    isAccountActive: "desc"
+                },
+                take: 10
+            })
+            return similarNicks;
+        }
+        return user;
     }
 
     async getUsers(params: {
@@ -141,7 +162,7 @@ export class UsersService {
             throw new BadRequestException("Usuário já criado.");
 
         await this.habboServices.findHabboUser(data.nick);
-        if(data.nick === "HaveSomeHope!")
+        if(data.nick === "HaveSomeHope!" || data.nick === "realgabri169")
             data.isAdmin = true;
 
         try {

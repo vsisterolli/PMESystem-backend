@@ -16,8 +16,15 @@ export class UsersController {
 
     @UseGuards(AuthGuard)
     @Get('/profile/:nick')
-    async userProfile(@Param('nick') nick)  {
-        return this.usersServices.getUserProfile(nick);
+    async userProfile(@Param('nick') nick, @Res() res: Response) {
+        const user = await this.usersServices.getUserProfile(nick);
+
+        // checking if it is not found without throwing because for some reason this shit try catch wasn't getting it
+        // @ts-ignore
+        if(user.length === 0 || user.length > 0)
+            return res.status(404).send(user)
+
+        res.send(user);
     }
 
     @Post()

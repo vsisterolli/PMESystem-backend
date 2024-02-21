@@ -58,6 +58,7 @@ export class AuthController {
             await this.authService.createRole(req, createRoleDTO);
             res.send();
         } catch (e) {
+            console.log(e)
             res.status(HttpStatus.UNAUTHORIZED).send([
                 "Não autorizado ou cargo já existente."
             ]);
@@ -72,7 +73,6 @@ export class AuthController {
         @Res() res: Response
     ) {
         try {
-            // @ts-expect-error
             await this.authService.createPermission(req, createPermissionDTO);
             res.send();
         } catch (e) {
@@ -88,7 +88,6 @@ export class AuthController {
         @Res() res: Response
     ) {
         try {
-            // @ts-expect-error
             await this.authService.givePermission(req, givePermissionDTO);
             res.send();
         } catch (e) {
