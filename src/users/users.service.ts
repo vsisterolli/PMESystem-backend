@@ -235,7 +235,6 @@ export class UsersService {
         if((data.role === "Supremo" || data.role === "Conselheiro") && !req["user"].isAdmin)
             throw new UnauthorizedException("Apenas administradores do site podem contratar um supremo ou conselheiro");
 
-
         let user = await this.prisma.user.findUnique({
             where: {
                 nick: data.nick
