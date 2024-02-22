@@ -1,4 +1,4 @@
-import { IsNotEmpty } from "class-validator";
+import { isNotEmpty, IsNotEmpty } from 'class-validator';
 
 export class CreateUserDTO {
     @IsNotEmpty()
@@ -14,4 +14,18 @@ export class ActivateUserDTO {
 
     @IsNotEmpty()
     sessionId: string;
+}
+
+export class ContractUserDTO {
+    @IsNotEmpty()
+    nick: string;
+
+    @IsNotEmpty()
+    type: "SELLING" | "CONTRACTING";
+
+    @IsNotEmpty()
+    role: string;
+
+    @IsNotEmpty()
+    description: string
 }

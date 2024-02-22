@@ -1,9 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from "../prisma.service";
 import { Prisma, Session, User } from "@prisma/client";
-import { ActivateUserDTO } from "./users.dtos";
+import { ActivateUserDTO, ContractUserDTO } from './users.dtos';
 import * as bcrypt from "bcrypt";
 import { HabboService } from "../habbo/habbo.service";
+import { Request } from 'express';
 
 @Injectable()
 export class UsersService {
@@ -103,6 +108,7 @@ export class UsersService {
                 createdAt: true,
                 discord: true,
                 advNum: true,
+                capeSelected: true,
                 permissionsObtained: {
                     select: {
                         name: true,
@@ -221,5 +227,47 @@ export class UsersService {
                 nick
             }
         });
+    }
+
+    async contractUser(data: ContractUserDTO, req: Request) {
+        if(!req["user"] || (req["user"].roleName !== "Conselheiro" && req["user"].roleName !== "Supremo"))
+            throw new UnauthorizedException("Você não tem permissão para contratar.");
+        if((data.role === "Supremo" || data.role === "Conselheiro") && !req["user"].isAdmin)
+            throw new UnauthorizedException("Apenas administradores do site podem contratar um supremo ou conselheiro");
+
+
+        let user = await this.prisma.user.findUnique({
+            where: {
+                nick: data.nick
+            }
+        }) as User;
+
+        if(user) {
+            await this.prisma.user.update({
+                where: {
+                    id: user.id
+                },
+                data: {
+                    roleName: data.role
+                }
+            })
+        } else {
+            user = await this.prisma.user.create({
+                data: {
+                    nick: data.nick,
+                    roleName: data.role
+                }
+            })
+        }
+
+        await this.prisma.activityLog.create({
+            data: {
+                author: req["user"].nick,
+                targetId: user.id,
+                type: data.type,
+                description: data.description,
+                newRole: data.role
+            }
+        })
     }
 }

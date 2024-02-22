@@ -15,6 +15,19 @@ export class AuthService {
         private prisma: PrismaService
     ) {}
 
+    async getRoles() {
+        return this.prisma.roles.findMany({
+            select: {
+                hierarchyKind: true,
+                hierarchyPosition: true,
+                name: true
+            },
+            orderBy: {
+                hierarchyPosition: 'asc'
+            }
+        })
+    }
+
     async signIn(nick: string, password: string): Promise<any> {
         const user = await this.usersService.findByName(nick);
         if(!user || user.isAccountActive === false)

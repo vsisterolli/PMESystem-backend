@@ -31,6 +31,8 @@ enum ActivityType {
   BANNING
   LICENSE
   WARNING
+  CONTRACTING
+  SELLING
 }
 
 model User {
@@ -39,6 +41,7 @@ model User {
   password            String?               @db.VarChar(240)
   discord             String?               @db.VarChar(30)
   lastPromoted        DateTime              @default(now())
+  capeSelected        String                @default("base.png")
   createdAt           DateTime              @default(now())
   advNum              Int                   @default(0)
   isAccountActive     Boolean               @default(false)
@@ -47,6 +50,7 @@ model User {
   roleName            String?
   permissionsObtained PermissionsObtained[]
   ActivityLog         ActivityLog[]
+  capesAtribbuted     capesAtribbuted[]
 }
 
 model ActivityLog {
@@ -61,6 +65,21 @@ model ActivityLog {
   expiresAt         DateTime?
   newRole           String?
   oldWarningsAmount String?
+}
+
+model Cape {
+  id              String            @id @default(uuid())
+  name            String            @unique
+  fileName        String            @unique
+  capesAtribbuted capesAtribbuted[]
+}
+
+model capesAtribbuted {
+  id     String @id @default(uuid())
+  userId String
+  capeId String
+  user   User   @relation(fields: [userId], references: [id])
+  cape   Cape   @relation(fields: [capeId], references: [id])
 }
 
 model PermissionsObtained {

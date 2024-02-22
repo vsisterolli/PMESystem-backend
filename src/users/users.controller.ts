@@ -1,8 +1,21 @@
-import { Body, Controller, Get, HttpStatus, Param, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+    Body,
+    Controller, FileTypeValidator,
+    Get,
+    HttpStatus, MaxFileSizeValidator,
+    Param, ParseFilePipe,
+    Patch,
+    Post,
+    Req,
+    Res, UploadedFile,
+    UseGuards,
+    UseInterceptors,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
-import { ActivateUserDTO, CreateUserDTO } from "./users.dtos";
+import { ActivateUserDTO, ContractUserDTO, CreateUserDTO } from './users.dtos';
 import { UsersService } from "./users.service";
 import { AuthGuard } from '../auth/auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller("users")
 export class UsersController {
@@ -65,5 +78,14 @@ export class UsersController {
                 return res.status(HttpStatus.BAD_REQUEST).send(e.errors);
             return res.status(HttpStatus.BAD_REQUEST).send([e.message]);
         }
+    }
+
+    @UseGuards(AuthGuard)
+    @Post("contract")
+    async contractUser(
+        @Body() contractUserDTO: ContractUserDTO,
+        @Req() req: Request
+    ) {
+        await this.usersServices.contractUser(contractUserDTO, req)
     }
 }

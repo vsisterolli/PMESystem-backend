@@ -1,13 +1,13 @@
 import {
     Body,
-    Controller,
+    Controller, Get,
     HttpCode,
     HttpStatus,
     Post,
     Req,
     Res,
-    UseGuards
-} from "@nestjs/common";
+    UseGuards,
+} from '@nestjs/common';
 import {
     CreatePermissionDTO,
     CreateRoleDTO,
@@ -94,5 +94,11 @@ export class AuthController {
             console.log(e)
             res.status(HttpStatus.UNAUTHORIZED).send(["Não autorizado."]);
         }
+    }
+
+    @UseGuards(AuthGuard)
+    @Get("/roles")
+    async getRoles() {
+        return this.authService.getRoles();
     }
 }
