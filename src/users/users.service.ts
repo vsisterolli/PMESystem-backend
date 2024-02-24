@@ -17,6 +17,14 @@ export class UsersService {
         private habboServices: HabboService
     ) {}
 
+    async getPermissions(request: Request) {
+
+        return this.prisma.permissionsObtained.findMany({
+            where: {
+                userId: request["user"].id
+            }
+        })
+    }
     async getRecentUsers() {
         // @ts-ignore
         return this.prisma.user.findMany({

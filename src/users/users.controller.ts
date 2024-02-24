@@ -15,7 +15,6 @@ import { Request, Response } from 'express';
 import { ActivateUserDTO, ContractUserDTO, CreateUserDTO } from './users.dtos';
 import { UsersService } from "./users.service";
 import { AuthGuard } from '../auth/auth.guard';
-import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller("users")
 export class UsersController {
@@ -25,6 +24,15 @@ export class UsersController {
     @Get('/recent')
     async recentUsers() {
         return this.usersServices.getRecentUsers();
+    }
+
+    @UseGuards(AuthGuard)
+    @Get("/permissions")
+    async getPermissions(@Req() req: Request) {
+        return {
+            permissionsObtained: await this.usersServices.getPermissions(req),
+            userRole: req["user"].roleName
+        };
     }
 
     @UseGuards(AuthGuard)
