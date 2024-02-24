@@ -6,6 +6,7 @@ import * as bcrypt from "bcrypt";
 import { Prisma, User } from '@prisma/client';
 import { Request } from "express";
 import { CreatePermissionDTO, GivePermissionDTO } from './auth.dtos';
+import * as process from "process";
 
 @Injectable()
 export class AuthService {
@@ -63,7 +64,7 @@ export class AuthService {
         })
 
         return {
-            access_token: "Bearer " + (await this.jwtService.signAsync(payload)),
+            access_token: process.env.LOCAL === "TRUE" ? "Bearer " + (await this.jwtService.signAsync(payload)) : "",
             userData
         };
     }
