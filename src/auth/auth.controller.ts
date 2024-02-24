@@ -32,8 +32,7 @@ export class AuthController {
         res.cookie("token", data.access_token, {
             maxAge: 7 * 24 * 60 * 60,
             httpOnly: true,
-            sameSite: 'lax',
-            secure: false
+            secure: true
         });
         if(process.env.LOCAL === "TRUE")
             return res.send(data)

@@ -64,7 +64,7 @@ export class AuthService {
         })
 
         return {
-            access_token: process.env.LOCAL === "TRUE" ? "Bearer " + (await this.jwtService.signAsync(payload)) : "",
+            access_token: "Bearer " + (await this.jwtService.signAsync(payload)),
             userData
         };
     }
