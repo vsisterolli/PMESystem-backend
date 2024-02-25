@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from "../prisma.service";
 import { Prisma, Session, User } from "@prisma/client";
-import { ActivateUserDTO, ContractUserDTO } from './users.dtos';
+import {ActivateUserDTO, ChangePasswordDTO, ContractUserDTO} from './users.dtos';
 import * as bcrypt from "bcrypt";
 import { HabboService } from "../habbo/habbo.service";
 import { Request } from 'express';
@@ -78,6 +78,23 @@ export class UsersService {
             return "Você precisa se alistar antes de ativar a conta"
 
         if (isAnExistentUser.isAccountActive) return "Usuário já ativo.";
+
+        return "";
+    }
+
+    async validateActiveUser(nick: string): Promise<string> {
+        const isAnExistentUser = (await this.prisma.user.findUnique({
+            where: {
+                nick
+            }
+        })) as User;
+
+        if (isAnExistentUser === null)
+            return "Usuário inexistente. Você provavelmente ainda não se alistou, procure nossa base no Habbo Hotel!";
+        if(isAnExistentUser.roleName === "Recruta")
+            return "Você precisa se alistar antes de ativar a conta"
+
+        if (!isAnExistentUser.isAccountActive) return "Usuário inativo. Ative sua conta primeiro";
 
         return "";
     }
@@ -228,6 +245,45 @@ export class UsersService {
             }
         });
     }
+
+    async changeUserPassword(data: ChangePasswordDTO) {
+        const validationError = await this.validateActiveUser(data.nick);
+        if (validationError !== "")
+            throw new BadRequestException(validationError);
+
+        const validationErrors = this.validatePassword(data.password);
+        if (validationErrors.length) {
+            const invalidPasswordError = new Error("Senha inválida");
+            invalidPasswordError["errors"] = validationErrors;
+            throw invalidPasswordError;
+        }
+
+        const { confirmSession, error } = await this.validateSession(
+          data.sessionId
+        );
+        if (error) throw new BadRequestException(error);
+
+        const habboUser = await this.habboServices.findHabboUser(data.nick);
+
+        if (habboUser.motto.includes(`PMETROCAR${confirmSession.code}`) === false)
+            throw new BadRequestException(
+              "Missão incorreta! Lembre-se de trocar sua missão para PMETROCAR" +
+              confirmSession.code
+            );
+
+        const salt = await bcrypt.genSalt();
+        const hash = await bcrypt.hash(data.password, salt);
+
+        await this.prisma.user.update({
+            where: {
+                nick: data.nick
+            },
+            data: {
+                password: hash,
+            }
+        });
+    }
+
 
     async findByName(nick: string): Promise<User> {
         return this.prisma.user.findUnique({

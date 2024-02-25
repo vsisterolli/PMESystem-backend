@@ -16,6 +16,18 @@ export class ActivateUserDTO {
     sessionId: string;
 }
 
+export class ChangePasswordDTO {
+    @IsNotEmpty()
+    nick: string;
+
+    @IsNotEmpty()
+    password: string;
+
+    @IsNotEmpty()
+    sessionId: string;
+}
+
+
 export class ContractUserDTO {
     @IsNotEmpty()
     nick: string;

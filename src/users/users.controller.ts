@@ -31,7 +31,8 @@ export class UsersController {
     async getPermissions(@Req() req: Request) {
         return {
             permissionsObtained: await this.usersServices.getPermissions(req),
-            userRole: req["user"].roleName
+            role: req["user"].roleName,
+            nick: req["user"].nick
         };
     }
 
@@ -80,6 +81,21 @@ export class UsersController {
     ) {
         try {
             await this.usersServices.activateUser(activateUserDTO);
+            return res.status(HttpStatus.OK).send();
+        } catch (e) {
+            if (e.message === "Senha inválida")
+                return res.status(HttpStatus.BAD_REQUEST).send(e.errors);
+            return res.status(HttpStatus.BAD_REQUEST).send([e.message]);
+        }
+    }
+
+    @Patch("changePassword")
+    async changeUserPassword(
+      @Body() activateUserDTO: ActivateUserDTO,
+      @Res() res: Response
+    ) {
+        try {
+            await this.usersServices.changeUserPassword(activateUserDTO);
             return res.status(HttpStatus.OK).send();
         } catch (e) {
             if (e.message === "Senha inválida")

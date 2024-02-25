@@ -30,14 +30,12 @@ export class AuthController {
             signInDto.password
         );
         res.cookie("token", data.access_token, {
-            maxAge: 7 * 24 * 60 * 60,
+            maxAge: 7 * 24 * 60 * 60 * 1000,
             httpOnly: true,
             secure: true
         });
-        if(process.env.LOCAL === "TRUE")
-            return res.send(data)
 
-        return res.send(data.userData);
+        return res.send(data);
     }
 
     @HttpCode(HttpStatus.CREATED)
