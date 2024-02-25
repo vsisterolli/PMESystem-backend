@@ -12,7 +12,7 @@ import {
     UseInterceptors,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { ActivateUserDTO, ContractUserDTO, CreateUserDTO } from './users.dtos';
+import {ActivateUserDTO, ChangeDiscordDTO, ContractUserDTO, CreateUserDTO} from './users.dtos';
 import { UsersService } from "./users.service";
 import { AuthGuard } from '../auth/auth.guard';
 
@@ -103,6 +103,16 @@ export class UsersController {
             return res.status(HttpStatus.BAD_REQUEST).send([e.message]);
         }
     }
+
+    @UseGuards(AuthGuard)
+    @Patch("changeDiscord")
+    async changeDiscord (
+      @Body() changeDiscordDTO: ChangeDiscordDTO,
+      @Req() req: Request
+    ) {
+        await this.usersServices.changeDiscord(changeDiscordDTO, req);
+    }
+
 
     @UseGuards(AuthGuard)
     @Post("contract")

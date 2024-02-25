@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from "../prisma.service";
 import { Prisma, Session, User } from "@prisma/client";
-import {ActivateUserDTO, ChangePasswordDTO, ContractUserDTO} from './users.dtos';
+import {ActivateUserDTO, ChangeDiscordDTO, ChangePasswordDTO, ContractUserDTO} from './users.dtos';
 import * as bcrypt from "bcrypt";
 import { HabboService } from "../habbo/habbo.service";
 import { Request } from 'express';
@@ -16,6 +16,17 @@ export class UsersService {
         private prisma: PrismaService,
         private habboServices: HabboService
     ) {}
+
+    async changeDiscord(changeDiscordDTO: ChangeDiscordDTO, req: Request) {
+        await this.prisma.user.update({
+            where: {
+                nick: req["user"].nick
+            },
+            data: {
+                discord: changeDiscordDTO.discord
+            }
+        })
+    }
 
     async getPermissions(request: Request) {
 
