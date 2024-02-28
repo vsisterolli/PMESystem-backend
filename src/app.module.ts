@@ -6,6 +6,7 @@ import { UsersModule } from "./users/users.module";
 import { HabboService } from "./habbo/habbo.service";
 import { ActionsModule } from "./actions/actions.module";
 import { CosmeticModule } from './cosmetic/cosmetic.module';
+import { DepartamentsModule } from './departaments/departaments.module';
 
 @Module({
     imports: [
@@ -15,7 +16,8 @@ import { CosmeticModule } from './cosmetic/cosmetic.module';
         AuthModule,
         UsersModule,
         ActionsModule,
-        CosmeticModule
+        CosmeticModule,
+        DepartamentsModule
     ],
     providers: [PrismaService, HabboService]
 })

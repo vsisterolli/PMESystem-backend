@@ -5,13 +5,14 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Request } from 'express';
 import * as process from 'process';
 import { Cape, User } from '@prisma/client';
+import {HabboService} from "../habbo/habbo.service";
 
 const client = new S3Client({});
 
 @Injectable()
 export class CosmeticService {
 
-  constructor(readonly prisma: PrismaService) {}
+  constructor(readonly prisma: PrismaService, private habboServices: HabboService) {}
 
   async createCape(request, file, data: CreateCapeDTO) {
     if (!request["user"] || request["user"].isAdmin === false)
@@ -56,6 +57,8 @@ export class CosmeticService {
       throw new UnauthorizedException([
         "Sem permissão para realizar essa ação."
       ]);
+
+    data.userNick = (await this.habboServices.findHabboUser(data.userNick)).name;
 
     const userPromise = this.prisma.user.findUnique({
       where: {
@@ -114,7 +117,6 @@ export class CosmeticService {
   }
 
   async changeUserCape(data: ChangeCapeDTO, request: Request) {
-    console.log(data.capeName)
     await this.prisma.user.update({
       where: {
         nick: request["user"].nick

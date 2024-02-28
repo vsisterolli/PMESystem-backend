@@ -5,6 +5,7 @@ import { UsersModule } from "../users/users.module";
 import { JwtModule } from "@nestjs/jwt";
 import * as process from "process";
 import { PrismaService } from "../prisma.service";
+import {HabboService} from "../habbo/habbo.service";
 
 @Module({
     imports: [
@@ -15,7 +16,7 @@ import { PrismaService } from "../prisma.service";
             signOptions: { expiresIn: "7d" }
         })
     ],
-    providers: [PrismaService, AuthService],
+    providers: [HabboService, PrismaService, AuthService],
     controllers: [AuthController],
     exports: [AuthService]
 })

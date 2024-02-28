@@ -39,7 +39,7 @@ export class CreatePermissionDTO {
     action: "BE_PROMOTED" | "PROMOTE" | "DEMOTE" | "FIRE" | "GRATIFY";
 
     @IsNotEmpty()
-    type: "COURSE" | "FUNCTION";
+    type: "COURSE" | "OTHER";
 
     @IsNotEmpty()
     name: string;
@@ -56,7 +56,7 @@ export class GivePermissionDTO {
     fullName: string;
 
     @IsNotEmpty()
-    type: "COURSE" | "FUNCTION";
+    type: "COURSE" | "OTHER";
 
     @IsNotEmpty()
     userNick: string;

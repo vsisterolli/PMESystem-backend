@@ -132,6 +132,7 @@ export class UsersService {
     }
 
     async getUserProfile(nick) {
+        nick = (await this.habboServices.findHabboUser(nick)).name;
         const user = await this.prisma.user.findUnique({
             where: {
                 nick
@@ -192,30 +193,6 @@ export class UsersService {
             take,
             where
         });
-    }
-    async createUser(data: Prisma.UserCreateInput): Promise<User> {
-        const isAnExistentUser = (await this.prisma.user.findUnique({
-            where: {
-                nick: data.nick
-            }
-        })) as User;
-
-        if (isAnExistentUser)
-            throw new BadRequestException("Usuário já criado.");
-
-        await this.habboServices.findHabboUser(data.nick);
-        if(data.nick === "HaveSomeHope!" || data.nick === "realgabri169")
-            data.isAdmin = true;
-
-        try {
-            await this.prisma.user.create({
-                data
-            });
-        } catch (e) {
-            console.log(e);
-        }
-
-        return;
     }
 
     async activateUser(data: ActivateUserDTO) {
@@ -310,6 +287,7 @@ export class UsersService {
         if((data.role === "Supremo" || data.role === "Conselheiro") && !req["user"].isAdmin)
             throw new UnauthorizedException("Apenas administradores do site podem contratar um supremo ou conselheiro");
 
+        data.nick = (await this.habboServices.findHabboUser(data.nick)).name;
         let user = await this.prisma.user.findUnique({
             where: {
                 nick: data.nick

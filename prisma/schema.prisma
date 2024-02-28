@@ -5,6 +5,17 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum Departament {
+  INS
+  ESP
+  EFEX
+  CDO
+  CRH
+  MKT
+  PTR
+  CDT
+}
+
 enum Action {
   BE_PROMOTED
   PROMOTE
@@ -21,7 +32,7 @@ enum HierarchyKind {
 
 enum PermissionType {
   COURSE
-  FUNCTION
+  OTHER
 }
 
 enum ActivityType {
@@ -33,6 +44,28 @@ enum ActivityType {
   WARNING
   CONTRACTING
   SELLING
+  APPROVATION
+}
+
+model Classes {
+  id            Int         @id @default(autoincrement())
+  approved      String?
+  failed        String?
+  room          String
+  appliedAt     DateTime    @default(now())
+  courseAcronym String
+  author        String
+  departament   Departament
+}
+
+model Course {
+  id          String        @id @default(uuid())
+  acronym     String        @unique @db.VarChar(10)
+  name        String        @unique @db.VarChar(60)
+  document    String        @unique
+  departament Departament
+  powerNeeded Int
+  ActivityLog ActivityLog[]
 }
 
 model User {
@@ -47,10 +80,11 @@ model User {
   isAccountActive     Boolean               @default(false)
   isAdmin             Boolean               @default(false)
   role                Roles?                @relation(fields: [roleName], references: [name])
-  roleName            String?
+  roleName            String                @default("Soldado")
   permissionsObtained PermissionsObtained[]
   ActivityLog         ActivityLog[]
   capesAtribbuted     capesAtribbuted[]
+  userDepartamentRole userDepartamentRole[]
 }
 
 model ActivityLog {
@@ -58,8 +92,10 @@ model ActivityLog {
   type              ActivityType
   targetId          String
   author            String
+  courseAcronym     String?
   isActive          Boolean      @default(true)
   description       String       @db.VarChar(4000)
+  course            Course?      @relation(fields: [courseAcronym], references: [acronym])
   user              User         @relation(fields: [targetId], references: [id])
   createdAt         DateTime     @default(now())
   expiresAt         DateTime?
@@ -92,6 +128,23 @@ model PermissionsObtained {
   createdAt DateTime       @default(now())
 
   @@unique([userId, name], name: "permissionIdentifier")
+}
+
+model userDepartamentRole {
+  id                String          @id @default(uuid())
+  userId            String
+  departamentRoleId String
+  departamentRoles  DepartamentRole @relation(fields: [departamentRoleId], references: [id])
+  user              User            @relation(fields: [userId], references: [id])
+}
+
+model DepartamentRole {
+  id                  String                @id @default(uuid())
+  acronym             String                @unique
+  name                String                @unique
+  departament         Departament
+  powerLevel          Int
+  userDepartamentRole userDepartamentRole[]
 }
 
 model PermissionsRequired {

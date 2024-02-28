@@ -12,7 +12,7 @@ import {
     UseInterceptors,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import {ActivateUserDTO, ChangeDiscordDTO, ContractUserDTO, CreateUserDTO} from './users.dtos';
+import {ActivateUserDTO, ChangeDiscordDTO, ContractUserDTO} from './users.dtos';
 import { UsersService } from "./users.service";
 import { AuthGuard } from '../auth/auth.guard';
 
@@ -47,31 +47,6 @@ export class UsersController {
             return res.status(404).send(user)
 
         res.send(user);
-    }
-
-    @Post()
-    async createUser(
-        @Body() createUserDTO: CreateUserDTO,
-        @Res() res: Response
-    ) {
-        try {
-            await this.usersServices.createUser(createUserDTO);
-            return res.status(HttpStatus.CREATED).send();
-        } catch (e) {
-            if (e.message === "Invalid password") {
-                return res.status(HttpStatus.BAD_REQUEST).send(e.errors);
-            }
-
-            if (e.message === "Usuário já criado.") {
-                return res.status(HttpStatus.CONFLICT).send(e.message);
-            }
-
-            if (e.message === "Usuário não existente no habbo.") {
-                return res.status(HttpStatus.BAD_REQUEST).send(e.message);
-            }
-
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send();
-        }
     }
 
     @Patch("activate")

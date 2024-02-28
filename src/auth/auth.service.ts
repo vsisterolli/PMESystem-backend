@@ -7,13 +7,15 @@ import { Prisma, User } from '@prisma/client';
 import { Request } from "express";
 import { CreatePermissionDTO, GivePermissionDTO } from './auth.dtos';
 import * as process from "process";
+import {HabboService} from "../habbo/habbo.service";
 
 @Injectable()
 export class AuthService {
     constructor(
         private usersService: UsersService,
         private jwtService: JwtService,
-        private prisma: PrismaService
+        private prisma: PrismaService,
+        private habboServices: HabboService
     ) {}
 
     async getRoles() {
@@ -59,10 +61,20 @@ export class AuthService {
                         name: true,
                         type: true
                     }
+                },
+                userDepartamentRole: {
+                    select: {
+                        departamentRoles: {
+                            select: {
+                                name: true,
+                                departament: true,
+                                powerLevel: true
+                            }
+                        }
+                    }
                 }
             }
         })
-
         userData["access_token"] = process.env.LOCAL === "TRUE" ? "Bearer " + (await this.jwtService.signAsync(payload)) : "";
 
         return userData;
@@ -118,6 +130,8 @@ export class AuthService {
             throw new UnauthorizedException([
                 "Sem permissão para realizar essa ação."
             ]);
+
+        data.userNick = (await this.habboServices.findHabboUser(data.userNick)).name;
 
         const user = await this.prisma.user.findUnique({
             where: {
