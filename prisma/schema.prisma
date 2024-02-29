@@ -165,8 +165,8 @@ model PermissionsRequired {
   hierarchyKind HierarchyKind?
   createdAt     DateTime       @default(now())
 
-  @@unique([name, roleName], name: "roleSpecificIdentifier")
-  @@unique([name, hierarchyKind], name: "hierachySpecificIdentifier")
+  @@unique([action, name, roleName], name: "roleSpecificIdentifier")
+  @@unique([action, name, hierarchyKind], name: "hierachySpecificIdentifier")
 }
 
 model Roles {

@@ -460,6 +460,12 @@ const permissionsRequired = [
   },
   {
     action: "PROMOTE",
+    name: "CApEx",
+    type: "COURSE",
+    hierarchyKind: "EXECUTIVE"
+  },
+  {
+    action: "PROMOTE",
     name: "CFO",
     type: "OTHER",
     roleName: "Aspirante a Oficial",
@@ -477,7 +483,13 @@ const permissionsRequired = [
     name: "CFO",
     type: "OTHER",
     roleName: "Aspirante a Oficial",
-    hierarchyKind: "EXECUIVE"
+    hierarchyKind: "EXECUTIVE"
+  },
+  {
+    action: "FIRE",
+    name: "CFO",
+    type: "OTHER",
+    hierarchyKind: "EXECUTIVE"
   }
 ]
 
@@ -547,6 +559,18 @@ async function main() {
     } catch {
 		console.log("Não foi possível criar os cursos.");
 	}
+
+  try {
+    // @ts-ignore
+    await prisma.permissionsRequired.createMany({
+      // @ts-ignore
+      data: permissionsRequired
+    })
+    console.log("Permissões necessárias criadas.");
+  } catch(e) {
+    console.log("Não foi possível criar as permissões necessárias.");
+    console.log(e)
+  }
 }
 
 main().finally(async () => await prisma.$disconnect());

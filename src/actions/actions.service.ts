@@ -128,6 +128,12 @@ export class ActionsService {
             promoterObtainedPermissionsPromise
         ]);
 
+        let hasCapex = false;
+        promoterObtainedPermissions.forEach(permission => {
+            if(permission.name === "CApEx")
+                hasCapex = true;
+        })
+
         // @ts-ignore
         if (
             this.missingPermissions(
@@ -142,6 +148,7 @@ export class ActionsService {
 
         // @ts-ignore
         if (
+            !(promotedUser.roleName === "Soldado" && hasCapex) &&
             this.missingPermissions(
                 promoterRequiredCourses,
                 promoterObtainedPermissions

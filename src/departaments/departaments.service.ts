@@ -455,7 +455,7 @@ export class DepartamentsService {
             if (
                 course.acronym === "CDO" ||
                 course.acronym === "ESbt" ||
-                course.acronym === "CAPeX"
+                course.acronym === "CApEx"
             ) {
                 permissionObtainedData.push({
                     userId: userObj.id,
