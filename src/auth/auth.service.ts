@@ -83,7 +83,9 @@ export class AuthService {
                 ? "Bearer " + (await this.jwtService.signAsync(payload))
                 : "";
 
-        return userData;
+        const cookieToken = await this.jwtService.signAsync(payload);
+
+        return { userData, cookieToken };
     }
 
     async createAuthSession() {

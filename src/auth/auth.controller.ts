@@ -25,17 +25,17 @@ export class AuthController {
 
     @Post("login")
     async signIn(@Body() signInDto: SignInDTO, @Res() res: Response) {
-        const data = await this.authService.signIn(
+        const { userData, cookieToken } = await this.authService.signIn(
             signInDto.nick,
             signInDto.password
         );
-        res.cookie("token", data.access_token, {
+        res.cookie("token", cookieToken, {
             maxAge: 7 * 24 * 60 * 60 * 1000,
             httpOnly: true,
             secure: true
         });
 
-        return res.send(data);
+        return res.send(userData);
     }
 
     @HttpCode(HttpStatus.CREATED)
