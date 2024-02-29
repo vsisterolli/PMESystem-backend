@@ -85,15 +85,20 @@ export class ActionsService {
             this.prismaService.permissionsRequired.findMany({
                 where: {
                     action: "BE_PROMOTED",
-                    roleName: promotedUser.roleName
-                }
+                    OR: [
+                        {roleName: promotedUser.roleName},
+                        {hierarchyKind: promotedUser.role.hierarchyKind}
+                    ]                }
             });
 
         const promoterRequiredCoursesPromise =
             this.prismaService.permissionsRequired.findMany({
                 where: {
                     action: "PROMOTE",
-                    roleName: promoter.roleName
+                    OR: [
+                        {roleName: promoter.roleName},
+                        {hierarchyKind: promoter.role.hierarchyKind}
+                    ]
                 }
             });
 
@@ -234,7 +239,10 @@ export class ActionsService {
             this.prismaService.permissionsRequired.findMany({
                 where: {
                     action: "DEMOTE",
-                    roleName: demoter.roleName
+                    OR: [
+                        {roleName: demoter.roleName},
+                        {hierarchyKind: demoter.role.hierarchyKind}
+                    ]
                 }
             });
 
@@ -338,7 +346,10 @@ export class ActionsService {
             this.prismaService.permissionsRequired.findMany({
                 where: {
                     action: "FIRE",
-                    roleName: firer.roleName
+                    OR: [
+                        {roleName: firer.roleName},
+                        {hierarchyKind: firer.role.hierarchyKind}
+                    ]
                 }
             });
 
@@ -449,7 +460,10 @@ export class ActionsService {
             this.prismaService.permissionsRequired.findMany({
                 where: {
                     action: "WARN",
-                    roleName: warner.roleName
+                    OR: [
+                        {roleName: warner.roleName},
+                        {hierarchyKind: warner.role.hierarchyKind}
+                    ]
                 }
             });
 

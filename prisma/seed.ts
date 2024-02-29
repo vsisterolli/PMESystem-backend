@@ -427,6 +427,60 @@ const departamentRoles: Prisma.DepartamentRoleCreateInput[] = [
 	}
 ];
 
+const permissionsRequired = [
+  {
+    action: "BE_PROMOTED",
+    name: "ECb",
+    type: "COURSE",
+    roleName: "Cabo"
+  },
+  {
+    action: "BE_PROMOTED",
+    name: "ESgt",
+    type: "COURSE",
+    roleName: "Sargento"
+  },
+  {
+    action: "PROMOTE",
+    name: "ESbt",
+    type: "COURSE",
+    roleName: "Subtenente"
+  },
+  {
+    action: "BE_PROMOTED",
+    name: "ESbt",
+    type: "COURSE",
+    roleName: "Subtenente"
+  },
+  {
+    action: "BE_PROMOTED",
+    name: "CFO",
+    type: "COURSE",
+    roleName: "Aspirante a Oficial"
+  },
+  {
+    action: "PROMOTE",
+    name: "CFO",
+    type: "OTHER",
+    roleName: "Aspirante a Oficial",
+    hierarchyKind: "EXECUTIVE"
+  },
+  {
+    action: "DEMOTE",
+    name: "CFO",
+    type: "OTHER",
+    roleName: "Aspirante a Oficial",
+    hierarchyKind: "EXECUTIVE"
+  },
+  {
+    action: "WARN",
+    name: "CFO",
+    type: "OTHER",
+    roleName: "Aspirante a Oficial",
+    hierarchyKind: "EXECUIVE"
+  }
+]
+
 const prisma = new PrismaClient();
 
 async function main() {
