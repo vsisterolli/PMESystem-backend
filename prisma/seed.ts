@@ -39,7 +39,7 @@ const promotionRange = [
     militaryNames.indexOf("Recruta"), // sargento
     militaryNames.indexOf("Soldado"), // subtenente
 	militaryNames.indexOf("Cabo"), // aspirante
-    militaryNames.indexOf("Subtenente"), // tenente
+    militaryNames.indexOf("Sargento"), // tenente
 	militaryNames.indexOf("Subtenente"), // capitão
     militaryNames.indexOf("Aspirante a Oficial"), // major
 	militaryNames.indexOf("Tenente"), // coronel
