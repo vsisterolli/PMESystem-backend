@@ -161,7 +161,7 @@ export class DepartamentsService {
         if (!user || !role)
             throw new NotFoundException("Cargo e/ou usuário não encontrado.");
         if (user.roleName === "Recruta")
-            throw new Error("Você não pode dar um cargo para esse usuário...");
+            throw new UnauthorizedException("Você não pode dar um cargo para esse usuário...");
 
         let applierRole;
 
