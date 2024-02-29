@@ -10,7 +10,7 @@ enum Departament {
   ESP
   EFEX
   CDO
-  CRH
+  RH
   MKT
   PTR
   CDT
@@ -66,6 +66,7 @@ model Course {
   departament Departament
   powerNeeded Int
   ActivityLog ActivityLog[]
+  createdAt   DateTime      @default(now())
 }
 
 model User {
@@ -108,14 +109,16 @@ model Cape {
   name            String            @unique
   fileName        String            @unique
   capesAtribbuted capesAtribbuted[]
+  createdAt       DateTime          @default(now())
 }
 
 model capesAtribbuted {
-  id     String @id @default(uuid())
-  userId String
-  capeId String
-  user   User   @relation(fields: [userId], references: [id])
-  cape   Cape   @relation(fields: [capeId], references: [id])
+  id        String   @id @default(uuid())
+  userId    String
+  capeId    String
+  user      User     @relation(fields: [userId], references: [id])
+  cape      Cape     @relation(fields: [capeId], references: [id])
+  createdAt DateTime @default(now())
 }
 
 model PermissionsObtained {
@@ -127,15 +130,19 @@ model PermissionsObtained {
   type      PermissionType
   createdAt DateTime       @default(now())
 
-  @@unique([userId, name], name: "permissionIdentifier")
+  @@unique([userId, name, type], name: "permissionIdentifier")
 }
 
 model userDepartamentRole {
   id                String          @id @default(uuid())
   userId            String
   departamentRoleId String
+  departament       Departament
   departamentRoles  DepartamentRole @relation(fields: [departamentRoleId], references: [id])
   user              User            @relation(fields: [userId], references: [id])
+
+  @@unique([userId, departamentRoleId], name: "departamentIdentifier")
+  createdAt DateTime @default(now())
 }
 
 model DepartamentRole {
@@ -145,6 +152,7 @@ model DepartamentRole {
   departament         Departament
   powerLevel          Int
   userDepartamentRole userDepartamentRole[]
+  createdAt           DateTime              @default(now())
 }
 
 model PermissionsRequired {
@@ -155,6 +163,7 @@ model PermissionsRequired {
   role          Roles?         @relation(fields: [roleName], references: [name])
   roleName      String?
   hierarchyKind HierarchyKind?
+  createdAt     DateTime       @default(now())
 
   @@unique([name, roleName], name: "roleSpecificIdentifier")
   @@unique([name, hierarchyKind], name: "hierachySpecificIdentifier")
@@ -172,12 +181,9 @@ model Roles {
   daysToBePromoted          Int
   permissionsRequired       PermissionsRequired[]
   users                     User[]
+  createdAt                 DateTime              @default(now())
 
   @@unique([hierarchyPosition, hierarchyKind], name: "roleIdentifier")
-}
-
-model GeneralRequirements {
-  id Int @id
 }
 
 model Session {

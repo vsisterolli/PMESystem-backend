@@ -1,27 +1,30 @@
 import {
     Body,
-    Controller, FileTypeValidator,
+    Controller,
     Get,
-    HttpStatus, MaxFileSizeValidator,
-    Param, ParseFilePipe,
+    HttpStatus,
+    Param,
     Patch,
     Post,
     Req,
-    Res, UploadedFile,
-    UseGuards,
-    UseInterceptors,
-} from '@nestjs/common';
-import { Request, Response } from 'express';
-import {ActivateUserDTO, ChangeDiscordDTO, ContractUserDTO} from './users.dtos';
+    Res,
+    UseGuards
+} from "@nestjs/common";
+import { Request, Response } from "express";
+import {
+    ActivateUserDTO,
+    ChangeDiscordDTO,
+    ContractUserDTO
+} from "./users.dtos";
 import { UsersService } from "./users.service";
-import { AuthGuard } from '../auth/auth.guard';
+import { AuthGuard } from "../auth/auth.guard";
 
 @Controller("users")
 export class UsersController {
     constructor(private usersServices: UsersService) {}
 
     @UseGuards(AuthGuard)
-    @Get('/recent')
+    @Get("/recent")
     async recentUsers() {
         return this.usersServices.getRecentUsers();
     }
@@ -37,14 +40,14 @@ export class UsersController {
     }
 
     @UseGuards(AuthGuard)
-    @Get('/profile/:nick')
-    async userProfile(@Param('nick') nick, @Res() res: Response) {
+    @Get("/profile/:nick")
+    async userProfile(@Param("nick") nick, @Res() res: Response) {
         const user = await this.usersServices.getUserProfile(nick);
 
         // checking if it is not found without throwing because for some reason this shit try catch wasn't getting it
         // @ts-ignore
-        if(user.length === 0 || user.length > 0)
-            return res.status(404).send(user)
+        if (user.length === 0 || user.length > 0)
+            return res.status(404).send(user);
 
         res.send(user);
     }
@@ -66,8 +69,8 @@ export class UsersController {
 
     @Patch("changePassword")
     async changeUserPassword(
-      @Body() activateUserDTO: ActivateUserDTO,
-      @Res() res: Response
+        @Body() activateUserDTO: ActivateUserDTO,
+        @Res() res: Response
     ) {
         try {
             await this.usersServices.changeUserPassword(activateUserDTO);
@@ -81,13 +84,12 @@ export class UsersController {
 
     @UseGuards(AuthGuard)
     @Patch("changeDiscord")
-    async changeDiscord (
-      @Body() changeDiscordDTO: ChangeDiscordDTO,
-      @Req() req: Request
+    async changeDiscord(
+        @Body() changeDiscordDTO: ChangeDiscordDTO,
+        @Req() req: Request
     ) {
         await this.usersServices.changeDiscord(changeDiscordDTO, req);
     }
-
 
     @UseGuards(AuthGuard)
     @Post("contract")
@@ -95,6 +97,6 @@ export class UsersController {
         @Body() contractUserDTO: ContractUserDTO,
         @Req() req: Request
     ) {
-        await this.usersServices.contractUser(contractUserDTO, req)
+        await this.usersServices.contractUser(contractUserDTO, req);
     }
 }

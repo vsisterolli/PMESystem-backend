@@ -1,14 +1,19 @@
 import {
     BadRequestException,
     Injectable,
-    UnauthorizedException,
-} from '@nestjs/common';
+    UnauthorizedException
+} from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { Prisma, Session, User } from "@prisma/client";
-import {ActivateUserDTO, ChangeDiscordDTO, ChangePasswordDTO, ContractUserDTO} from './users.dtos';
+import {
+    ActivateUserDTO,
+    ChangeDiscordDTO,
+    ChangePasswordDTO,
+    ContractUserDTO
+} from "./users.dtos";
 import * as bcrypt from "bcrypt";
 import { HabboService } from "../habbo/habbo.service";
-import { Request } from 'express';
+import { Request } from "express";
 
 @Injectable()
 export class UsersService {
@@ -25,16 +30,15 @@ export class UsersService {
             data: {
                 discord: changeDiscordDTO.discord
             }
-        })
+        });
     }
 
     async getPermissions(request: Request) {
-
         return this.prisma.permissionsObtained.findMany({
             where: {
                 userId: request["user"].id
             }
-        })
+        });
     }
     async getRecentUsers() {
         // @ts-ignore
@@ -43,7 +47,7 @@ export class UsersService {
                 nick: true
             },
             orderBy: {
-                createdAt: 'desc'
+                createdAt: "desc"
             },
             take: 5
         });
@@ -85,8 +89,8 @@ export class UsersService {
 
         if (isAnExistentUser === null)
             return "Usuário inexistente. Você provavelmente ainda não se alistou, procure nossa base no Habbo Hotel!";
-        if(isAnExistentUser.roleName === "Recruta")
-            return "Você precisa se alistar antes de ativar a conta"
+        if (isAnExistentUser.roleName === "Recruta")
+            return "Você precisa se alistar antes de ativar a conta";
 
         if (isAnExistentUser.isAccountActive) return "Usuário já ativo.";
 
@@ -102,10 +106,11 @@ export class UsersService {
 
         if (isAnExistentUser === null)
             return "Usuário inexistente. Você provavelmente ainda não se alistou, procure nossa base no Habbo Hotel!";
-        if(isAnExistentUser.roleName === "Recruta")
-            return "Você precisa se alistar antes de ativar a conta"
+        if (isAnExistentUser.roleName === "Recruta")
+            return "Você precisa se alistar antes de ativar a conta";
 
-        if (!isAnExistentUser.isAccountActive) return "Usuário inativo. Ative sua conta primeiro";
+        if (!isAnExistentUser.isAccountActive)
+            return "Usuário inativo. Ative sua conta primeiro";
 
         return "";
     }
@@ -156,10 +161,15 @@ export class UsersService {
                     orderBy: {
                         createdAt: "desc"
                     }
+                },
+                userDepartamentRole: {
+                    select: {
+                        departamentRoles: true
+                    }
                 }
             }
-        })
-        if(!user) {
+        });
+        if (!user) {
             // @ts-ignore
             const similarNicks = await this.prisma.user.findMany({
                 where: {
@@ -176,7 +186,7 @@ export class UsersService {
                     isAccountActive: "desc"
                 },
                 take: 10
-            })
+            });
             return similarNicks;
         }
         return user;
@@ -247,16 +257,19 @@ export class UsersService {
         }
 
         const { confirmSession, error } = await this.validateSession(
-          data.sessionId
+            data.sessionId
         );
         if (error) throw new BadRequestException(error);
 
         const habboUser = await this.habboServices.findHabboUser(data.nick);
 
-        if (habboUser.motto.includes(`PMETROCAR${confirmSession.code}`) === false)
+        if (
+            habboUser.motto.includes(`PMETROCAR${confirmSession.code}`) ===
+            false
+        )
             throw new BadRequestException(
-              "Missão incorreta! Lembre-se de trocar sua missão para PMETROCAR" +
-              confirmSession.code
+                "Missão incorreta! Lembre-se de trocar sua missão para PMETROCAR" +
+                    confirmSession.code
             );
 
         const salt = await bcrypt.genSalt();
@@ -267,11 +280,10 @@ export class UsersService {
                 nick: data.nick
             },
             data: {
-                password: hash,
+                password: hash
             }
         });
     }
-
 
     async findByName(nick: string): Promise<User> {
         return this.prisma.user.findUnique({
@@ -282,19 +294,30 @@ export class UsersService {
     }
 
     async contractUser(data: ContractUserDTO, req: Request) {
-        if(!req["user"] || (req["user"].roleName !== "Conselheiro" && req["user"].roleName !== "Supremo"))
-            throw new UnauthorizedException("Você não tem permissão para contratar.");
-        if((data.role === "Supremo" || data.role === "Conselheiro") && !req["user"].isAdmin)
-            throw new UnauthorizedException("Apenas administradores do site podem contratar um supremo ou conselheiro");
+        if (
+            !req["user"] ||
+            (req["user"].roleName !== "Conselheiro" &&
+                req["user"].roleName !== "Supremo")
+        )
+            throw new UnauthorizedException(
+                "Você não tem permissão para contratar."
+            );
+        if (
+            (data.role === "Supremo" || data.role === "Conselheiro") &&
+            !req["user"].isAdmin
+        )
+            throw new UnauthorizedException(
+                "Apenas administradores do site podem contratar um supremo ou conselheiro"
+            );
 
         data.nick = (await this.habboServices.findHabboUser(data.nick)).name;
-        let user = await this.prisma.user.findUnique({
+        let user = (await this.prisma.user.findUnique({
             where: {
                 nick: data.nick
             }
-        }) as User;
+        })) as User;
 
-        if(user) {
+        if (user) {
             await this.prisma.user.update({
                 where: {
                     id: user.id
@@ -302,14 +325,14 @@ export class UsersService {
                 data: {
                     roleName: data.role
                 }
-            })
+            });
         } else {
             user = await this.prisma.user.create({
                 data: {
                     nick: data.nick,
                     roleName: data.role
                 }
-            })
+            });
         }
 
         await this.prisma.activityLog.create({
@@ -320,6 +343,6 @@ export class UsersService {
                 description: data.description,
                 newRole: data.role
             }
-        })
+        });
     }
 }

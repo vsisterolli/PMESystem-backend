@@ -1,13 +1,14 @@
 import {
     Body,
-    Controller, Get,
+    Controller,
+    Get,
     HttpCode,
     HttpStatus,
     Post,
     Req,
     Res,
-    UseGuards,
-} from '@nestjs/common';
+    UseGuards
+} from "@nestjs/common";
 import {
     CreatePermissionDTO,
     CreateRoleDTO,
@@ -17,7 +18,6 @@ import {
 import { AuthService } from "./auth.service";
 import { AuthGuard } from "./auth.guard";
 import { Request, Response } from "express";
-import * as process from 'process';
 
 @Controller("auth")
 export class AuthController {
@@ -55,7 +55,7 @@ export class AuthController {
             await this.authService.createRole(req, createRoleDTO);
             res.send();
         } catch (e) {
-            console.log(e)
+            console.log(e);
             res.status(HttpStatus.UNAUTHORIZED).send([
                 "Não autorizado ou cargo já existente."
             ]);
@@ -88,7 +88,7 @@ export class AuthController {
             await this.authService.givePermission(req, givePermissionDTO);
             res.send();
         } catch (e) {
-            console.log(e)
+            console.log(e);
             res.status(HttpStatus.UNAUTHORIZED).send(["Não autorizado."]);
         }
     }

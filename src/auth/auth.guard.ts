@@ -21,10 +21,9 @@ export class AuthGuard implements CanActivate {
 
         try {
             let token;
-            if(process.env.LOCAL === "TRUE")
+            if (process.env.LOCAL === "TRUE")
                 token = this.extractTokenFromHeader(request);
-            else
-                token = this.extractTokenFromCookies(request);
+            else token = this.extractTokenFromCookies(request);
 
             if (!token) {
                 throw new UnauthorizedException("");
@@ -37,8 +36,27 @@ export class AuthGuard implements CanActivate {
             request["user"] = await this.prismaService.user.findUnique({
                 where: {
                     nick: payload.nick
+                },
+                select: {
+                    nick: true,
+                    discord: true,
+                    capeSelected: true,
+                    id: true,
+                    advNum: true,
+                    isAccountActive: true,
+                    lastPromoted: true,
+                    isAdmin: true,
+                    roleName: true,
+                    password: true,
+                    userDepartamentRole: {
+                        select: {
+                            departamentRoles: true
+                        }
+                    }
                 }
             });
+            if (request["user"].isAccountActive === false)
+                throw new UnauthorizedException("Conta inativa");
         } catch (e) {
             throw new UnauthorizedException();
         }
@@ -51,7 +69,7 @@ export class AuthGuard implements CanActivate {
     }
 
     private extractTokenFromHeader(request: Request) {
-        const [type, token] = request.headers.authorization?.split(' ') ?? [];
-        return type === 'Bearer' ? token : undefined;
+        const [type, token] = request.headers.authorization?.split(" ") ?? [];
+        return type === "Bearer" ? token : undefined;
     }
 }

@@ -160,6 +160,13 @@ export class ActionsService {
                 "Esse usuário não pode ser promovido."
             );
 
+        const deleteCoursesPromise =
+            this.prismaService.permissionsObtained.deleteMany({
+                where: {
+                    userId: promotedUser.id,
+                    type: "COURSE"
+                }
+            });
         const promotePromise = this.prismaService.user.update({
             where: {
                 nick: promotedUser.nick
@@ -177,9 +184,13 @@ export class ActionsService {
                 description: description,
                 newRole: nextRole.name
             }
-        })
+        });
 
-        await Promise.all([promotePromise, registerPromise])
+        await Promise.all([
+            promotePromise,
+            registerPromise,
+            deleteCoursesPromise
+        ]);
     }
 
     async demoteUser(nick: string, description: string, request: Request) {
@@ -208,50 +219,47 @@ export class ActionsService {
         } = await Promise.all([demotedUserPromise, demoterPromise]);
 
         if (
-          !demotedUser ||
-          demotedUser.role.name === "Soldado" ||
-          demotedUser.role.name === "Estagiário" ||
-          demotedUser.role.hierarchyPosition >
-          demoter.role.demoteUntilRolePosition
+            !demotedUser ||
+            demotedUser.role.name === "Soldado" ||
+            demotedUser.role.name === "Estagiário" ||
+            demotedUser.role.hierarchyPosition >
+                demoter.role.demoteUntilRolePosition
         ) {
             throw new UnauthorizedException(
-              "Você não pode rebaixar esse usuário."
+                "Você não pode rebaixar esse usuário."
             );
         }
 
         const demoterRequiredCoursesPromise =
-          this.prismaService.permissionsRequired.findMany({
-              where: {
-                  action: "DEMOTE",
-                  roleName: demoter.roleName
-              }
-          });
+            this.prismaService.permissionsRequired.findMany({
+                where: {
+                    action: "DEMOTE",
+                    roleName: demoter.roleName
+                }
+            });
 
         const demoterObtainedPermissionsPromise =
-          this.prismaService.permissionsObtained.findMany({
-              where: {
-                  userId: demoter.id
-              }
-          });
+            this.prismaService.permissionsObtained.findMany({
+                where: {
+                    userId: demoter.id
+                }
+            });
 
-
-        const [
-            demoterRequiredCourses,
-            demoterObtainedPermissions
-        ] = await Promise.all([
-            demoterRequiredCoursesPromise,
-            demoterObtainedPermissionsPromise
-        ]);
+        const [demoterRequiredCourses, demoterObtainedPermissions] =
+            await Promise.all([
+                demoterRequiredCoursesPromise,
+                demoterObtainedPermissionsPromise
+            ]);
 
         // @ts-ignore
         if (
-          this.missingPermissions(
-            demoterRequiredCourses,
-            demoterObtainedPermissions
-          )
+            this.missingPermissions(
+                demoterRequiredCourses,
+                demoterObtainedPermissions
+            )
         ) {
             throw new ForbiddenException(
-              "Você ainda não tem permissão para rebaixar."
+                "Você ainda não tem permissão para rebaixar."
             );
         }
 
@@ -267,7 +275,7 @@ export class ActionsService {
 
         if (!nextRole)
             throw new ForbiddenException(
-              "Esse usuário não pode ser rebaixado."
+                "Esse usuário não pode ser rebaixado."
             );
 
         const promotePromise = this.prismaService.user.update({
@@ -287,9 +295,9 @@ export class ActionsService {
                 description: description,
                 newRole: nextRole.name
             }
-        })
+        });
 
-        await Promise.all([promotePromise, registerPromise])
+        await Promise.all([promotePromise, registerPromise]);
     }
     async fireUser(nick: string, description: string, request: Request) {
         const firedUserPromise = this.prismaService.user.findUnique({
@@ -317,48 +325,45 @@ export class ActionsService {
         } = await Promise.all([firedUserPromise, firerPromise]);
 
         if (
-          !firedUser ||
-          firedUser.role.hierarchyPosition >
-          firer.role.demoteUntilRolePosition
+            !firedUser ||
+            firedUser.role.hierarchyPosition >
+                firer.role.demoteUntilRolePosition
         ) {
             throw new UnauthorizedException(
-              "Você não pode demitir esse usuário."
+                "Você não pode demitir esse usuário."
             );
         }
 
         const firerRequiredCoursesPromise =
-          this.prismaService.permissionsRequired.findMany({
-              where: {
-                  action: "FIRE",
-                  roleName: firer.roleName
-              }
-          });
+            this.prismaService.permissionsRequired.findMany({
+                where: {
+                    action: "FIRE",
+                    roleName: firer.roleName
+                }
+            });
 
         const firerObtainedPermissionsPromise =
-          this.prismaService.permissionsObtained.findMany({
-              where: {
-                  userId: firer.id
-              }
-          });
+            this.prismaService.permissionsObtained.findMany({
+                where: {
+                    userId: firer.id
+                }
+            });
 
-
-        const [
-            firerRequiredCourses,
-            firerObtainedPermissions
-        ] = await Promise.all([
-            firerRequiredCoursesPromise,
-            firerObtainedPermissionsPromise
-        ]);
+        const [firerRequiredCourses, firerObtainedPermissions] =
+            await Promise.all([
+                firerRequiredCoursesPromise,
+                firerObtainedPermissionsPromise
+            ]);
 
         // @ts-ignore
         if (
-          this.missingPermissions(
-            firerRequiredCourses,
-            firerObtainedPermissions
-          )
+            this.missingPermissions(
+                firerRequiredCourses,
+                firerObtainedPermissions
+            )
         ) {
             throw new ForbiddenException(
-              "Você ainda não tem permissão para demitir."
+                "Você ainda não tem permissão para demitir."
             );
         }
 
@@ -380,15 +385,28 @@ export class ActionsService {
                 description: description,
                 newRole: "Recruta"
             }
-        })
+        });
 
-        const deletePermissionsPromise = this.prismaService.permissionsObtained.deleteMany({
-            where: {
-                userId: firedUser.id
-            }
-        })
+        const deletePermissionsPromise =
+            this.prismaService.permissionsObtained.deleteMany({
+                where: {
+                    userId: firedUser.id
+                }
+            });
 
-        await Promise.all([deletePermissionsPromise, firePromise, registerPromise])
+        const deleteRolesPromise =
+            this.prismaService.userDepartamentRole.deleteMany({
+                where: {
+                    userId: firedUser.id
+                }
+            });
+
+        await Promise.all([
+            deletePermissionsPromise,
+            firePromise,
+            registerPromise,
+            deleteRolesPromise
+        ]);
     }
 
     async warnUser(nick: string, description: string, request: Request) {
@@ -417,50 +435,47 @@ export class ActionsService {
         } = await Promise.all([warnedUserPromise, warnerPromise]);
 
         if (
-          !warnedUser ||
-          warnedUser.roleName === "Recruta" ||
-          warnedUser.role.hierarchyPosition >
-          warner.role.demoteUntilRolePosition
+            !warnedUser ||
+            warnedUser.roleName === "Recruta" ||
+            warnedUser.role.hierarchyPosition >
+                warner.role.demoteUntilRolePosition
         ) {
             throw new UnauthorizedException(
-              "Você não pode advertir esse usuário."
+                "Você não pode advertir esse usuário."
             );
         }
 
         const warnerRequiredCoursesPromise =
-          this.prismaService.permissionsRequired.findMany({
-              where: {
-                  action: "WARN",
-                  roleName: warner.roleName
-              }
-          });
+            this.prismaService.permissionsRequired.findMany({
+                where: {
+                    action: "WARN",
+                    roleName: warner.roleName
+                }
+            });
 
         const warnerObtainedPermissionsPromise =
-          this.prismaService.permissionsObtained.findMany({
-              where: {
-                  userId: warner.id
-              }
-          });
+            this.prismaService.permissionsObtained.findMany({
+                where: {
+                    userId: warner.id
+                }
+            });
 
-
-        const [
-            warnerRequiredCourses,
-            warnerObtainedPermissions
-        ] = await Promise.all([
-            warnerRequiredCoursesPromise,
-            warnerObtainedPermissionsPromise
-        ]);
+        const [warnerRequiredCourses, warnerObtainedPermissions] =
+            await Promise.all([
+                warnerRequiredCoursesPromise,
+                warnerObtainedPermissionsPromise
+            ]);
 
         // @ts-ignore
         if (
-          this.missingPermissions(
-            warnerRequiredCourses,
-            warnerObtainedPermissions
-          )
+            this.missingPermissions(
+                warnerRequiredCourses,
+                warnerObtainedPermissions
+            )
         ) {
             throw new ForbiddenException(
-              "Você ainda não tem permissão para advertir."
-            )
+                "Você ainda não tem permissão para advertir."
+            );
         }
 
         await this.prismaService.activityLog.create({
@@ -470,10 +485,9 @@ export class ActionsService {
                 type: "WARNING",
                 description: description
             }
-        })
+        });
 
-        if(warnedUser.advNum === 2) {
-
+        if (warnedUser.advNum === 2) {
             // @ts-ignore
             const nextRole: Roles = await this.prismaService.roles.findUnique({
                 where: {
@@ -484,19 +498,22 @@ export class ActionsService {
                 }
             });
 
-            if(warnedUser.roleName === "Soldado")
+            if (warnedUser.roleName === "Soldado")
                 await this.prismaService.permissionsObtained.deleteMany({
                     where: {
                         userId: warnedUser.id
                     }
-                })
+                });
 
             await Promise.all([
                 this.prismaService.activityLog.create({
                     data: {
                         targetId: warnedUser.id,
                         author: "PME System",
-                        type: (warnedUser.roleName === "Soldado" ? "FIRE" : "DEMOTION"),
+                        type:
+                            warnedUser.roleName === "Soldado"
+                                ? "FIRE"
+                                : "DEMOTION",
                         description: "Acúmulo de 3 advertências.",
                         newRole: nextRole.name
                     }
@@ -507,7 +524,7 @@ export class ActionsService {
                     },
                     data: {
                         roleName: nextRole.name,
-                        isAccountActive: (warnedUser.roleName !== "Soldado"),
+                        isAccountActive: warnedUser.roleName !== "Soldado",
                         advNum: 0
                     }
                 }),
@@ -520,9 +537,8 @@ export class ActionsService {
                         isActive: false
                     }
                 })
-            ])
-        }
-        else {
+            ]);
+        } else {
             await this.prismaService.user.update({
                 where: {
                     nick: warnedUser.nick
@@ -530,8 +546,7 @@ export class ActionsService {
                 data: {
                     advNum: warnedUser.advNum + 1
                 }
-            })
+            });
         }
     }
-
 }

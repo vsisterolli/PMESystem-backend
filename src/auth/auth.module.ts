@@ -5,7 +5,7 @@ import { UsersModule } from "../users/users.module";
 import { JwtModule } from "@nestjs/jwt";
 import * as process from "process";
 import { PrismaService } from "../prisma.service";
-import {HabboService} from "../habbo/habbo.service";
+import { HabboService } from "../habbo/habbo.service";
 
 @Module({
     imports: [

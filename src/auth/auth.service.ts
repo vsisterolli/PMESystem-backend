@@ -1,13 +1,17 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    UnauthorizedException
+} from "@nestjs/common";
 import { UsersService } from "../users/users.service";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../prisma.service";
 import * as bcrypt from "bcrypt";
-import { Prisma, User } from '@prisma/client';
+import { Prisma } from "@prisma/client";
 import { Request } from "express";
-import { CreatePermissionDTO, GivePermissionDTO } from './auth.dtos';
+import { CreatePermissionDTO, GivePermissionDTO } from "./auth.dtos";
 import * as process from "process";
-import {HabboService} from "../habbo/habbo.service";
+import { HabboService } from "../habbo/habbo.service";
 
 @Injectable()
 export class AuthService {
@@ -26,19 +30,18 @@ export class AuthService {
                 name: true
             },
             orderBy: {
-                hierarchyPosition: 'asc'
+                hierarchyPosition: "asc"
             }
-        })
+        });
     }
 
     async signIn(nick: string, password: string): Promise<any> {
         const user = await this.usersService.findByName(nick);
-        if(!user || user.isAccountActive === false)
-            throw new UnauthorizedException(['Sua conta ainda está inativa, tente ativar na aba "ATIVAR CONTA"'])
-        if (
-            !user ||
-            bcrypt.compareSync(password, user.password) === false
-        ) {
+        if (!user || user.isAccountActive === false)
+            throw new UnauthorizedException([
+                'Sua conta ainda está inativa, tente ativar na aba "ATIVAR CONTA"'
+            ]);
+        if (!user || bcrypt.compareSync(password, user.password) === false) {
             throw new UnauthorizedException([
                 "Combinação de usuário/senha inexistente."
             ]);
@@ -74,11 +77,13 @@ export class AuthService {
                     }
                 }
             }
-        })
-        userData["access_token"] = process.env.LOCAL === "TRUE" ? "Bearer " + (await this.jwtService.signAsync(payload)) : "";
+        });
+        userData["access_token"] =
+            process.env.LOCAL === "TRUE"
+                ? "Bearer " + (await this.jwtService.signAsync(payload))
+                : "";
 
         return userData;
-
     }
 
     async createAuthSession() {
@@ -108,10 +113,7 @@ export class AuthService {
         });
     }
 
-    async createPermission(
-        request: Request,
-        data: CreatePermissionDTO
-    ) {
+    async createPermission(request: Request, data: CreatePermissionDTO) {
         if (!request["user"] || request["user"].isAdmin === false)
             throw new UnauthorizedException([
                 "Sem permissão para realizar essa ação."
@@ -122,25 +124,23 @@ export class AuthService {
         });
     }
 
-    async givePermission(
-        request: Request,
-        data: GivePermissionDTO
-    ) {
+    async givePermission(request: Request, data: GivePermissionDTO) {
         if (!request["user"] || request["user"].isAdmin === false)
             throw new UnauthorizedException([
                 "Sem permissão para realizar essa ação."
             ]);
 
-        data.userNick = (await this.habboServices.findHabboUser(data.userNick)).name;
+        data.userNick = (
+            await this.habboServices.findHabboUser(data.userNick)
+        ).name;
 
         const user = await this.prisma.user.findUnique({
             where: {
                 nick: data.userNick
             }
-        })
+        });
 
-        if (!user)
-            throw new BadRequestException("Usuário não existente")
+        if (!user) throw new BadRequestException("Usuário não existente");
 
         return this.prisma.permissionsObtained.create({
             data: {

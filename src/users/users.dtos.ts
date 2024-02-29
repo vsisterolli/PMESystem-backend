@@ -1,5 +1,4 @@
-import { IsNotEmpty } from 'class-validator';
-
+import { IsNotEmpty } from "class-validator";
 
 export class ActivateUserDTO {
     @IsNotEmpty()
@@ -28,7 +27,6 @@ export class ChangePasswordDTO {
     sessionId: string;
 }
 
-
 export class ContractUserDTO {
     @IsNotEmpty()
     nick: string;
@@ -40,5 +38,5 @@ export class ContractUserDTO {
     role: string;
 
     @IsNotEmpty()
-    description: string
+    description: string;
 }
