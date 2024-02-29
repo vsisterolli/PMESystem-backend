@@ -137,10 +137,17 @@ export class UsersService {
     }
 
     async getUserProfile(nick) {
-        nick = (await this.habboServices.findHabboUser(nick)).name;
+        let newNick = "";
+        try {
+            newNick = (await this.habboServices.findHabboUser(nick)).name;
+        } catch {
+            newNick = "";
+
+
+        }
         const user = await this.prisma.user.findUnique({
             where: {
-                nick
+                nick: newNick !== "" ? newNick : nick
             },
             select: {
                 nick: true,
@@ -174,7 +181,7 @@ export class UsersService {
             const similarNicks = await this.prisma.user.findMany({
                 where: {
                     nick: {
-                        contains: nick,
+                        contains: newNick !== "" ? newNick : nick,
                         mode: "insensitive"
                     }
                 },
