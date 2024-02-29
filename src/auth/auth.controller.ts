@@ -29,7 +29,7 @@ export class AuthController {
             signInDto.nick,
             signInDto.password
         );
-        res.cookie("token", cookieToken, {
+        res.cookie("token", "Bearer " + cookieToken, {
             maxAge: 7 * 24 * 60 * 60 * 1000,
             httpOnly: true,
             secure: true
