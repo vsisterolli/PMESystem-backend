@@ -30,6 +30,12 @@ export class UsersController {
     }
 
     @UseGuards(AuthGuard)
+    @Get("/self")
+    async getSelfInfo(@Req() req: Request) {
+        return this.usersServices.getSelfInfo(req);
+    }
+
+    @UseGuards(AuthGuard)
     @Get("/permissions")
     async getPermissions(@Req() req: Request) {
         return {
@@ -97,6 +103,10 @@ export class UsersController {
         @Body() contractUserDTO: ContractUserDTO,
         @Req() req: Request
     ) {
-        await this.usersServices.contractUser(contractUserDTO, req);
+        try {
+            await this.usersServices.contractUser(contractUserDTO, req);
+        } catch(e) {
+            console.log(e)
+        }
     }
 }

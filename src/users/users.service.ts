@@ -22,6 +22,43 @@ export class UsersService {
         private habboServices: HabboService
     ) {}
 
+    async getSelfInfo(req: Request) {
+        const user = await this.prisma.user.findUnique({
+            where: {
+                nick: req["user"].nick
+            },
+            select: {
+                nick: true,
+                role: {
+                    select: {
+                        name: true
+                    }
+                },
+                permissionsObtained: {
+                    select: {
+                        name: true,
+                        type: true
+                    }
+                },
+                userDepartamentRole: {
+                    select: {
+                        departamentRoles: {
+                            select: {
+                                name: true,
+                                departament: true,
+                                powerLevel: true
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
+        if(!user)
+            throw new UnauthorizedException("Precisa estar logado para acessar essa informação.")
+        return user;
+    }
+
     async changeDiscord(changeDiscordDTO: ChangeDiscordDTO, req: Request) {
         await this.prisma.user.update({
             where: {
@@ -309,6 +346,7 @@ export class UsersService {
             throw new UnauthorizedException(
                 "Você não tem permissão para contratar."
             );
+
         if (
             (data.role === "Supremo" || data.role === "Conselheiro") &&
             !req["user"].isAdmin

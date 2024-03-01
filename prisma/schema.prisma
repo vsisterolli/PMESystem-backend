@@ -89,7 +89,7 @@ model User {
 }
 
 model ActivityLog {
-  id                String       @id @default(uuid())
+  id                Int          @id @default(autoincrement())
   type              ActivityType
   targetId          String
   author            String
@@ -97,7 +97,7 @@ model ActivityLog {
   isActive          Boolean      @default(true)
   description       String       @db.VarChar(4000)
   course            Course?      @relation(fields: [courseAcronym], references: [acronym])
-  user              User         @relation(fields: [targetId], references: [id])
+  user              User         @relation(fields: [targetId], references: [id], onDelete: Cascade)
   createdAt         DateTime     @default(now())
   expiresAt         DateTime?
   newRole           String?
@@ -116,14 +116,14 @@ model capesAtribbuted {
   id        String   @id @default(uuid())
   userId    String
   capeId    String
-  user      User     @relation(fields: [userId], references: [id])
-  cape      Cape     @relation(fields: [capeId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cape      Cape     @relation(fields: [capeId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
 
 model PermissionsObtained {
   id        String         @id @default(uuid())
-  user      User           @relation(fields: [userId], references: [id])
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   name      String
   fullName  String
@@ -138,8 +138,8 @@ model userDepartamentRole {
   userId            String
   departamentRoleId String
   departament       Departament
-  departamentRoles  DepartamentRole @relation(fields: [departamentRoleId], references: [id])
-  user              User            @relation(fields: [userId], references: [id])
+  departamentRoles  DepartamentRole @relation(fields: [departamentRoleId], references: [id], onDelete: Cascade)
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, departamentRoleId], name: "departamentIdentifier")
   createdAt DateTime @default(now())
