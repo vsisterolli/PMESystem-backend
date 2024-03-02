@@ -174,14 +174,16 @@ export class UsersService {
     }
 
     async getUserProfile(nick) {
+        nick = decodeURIComponent(nick);
         let newNick = "";
+        console.log(newNick)
         try {
             newNick = (await this.habboServices.findHabboUser(nick)).name;
         } catch {
             newNick = "";
-
-
         }
+
+        console.log(newNick)
         const user = await this.prisma.user.findUnique({
             where: {
                 nick: newNick !== "" ? newNick : nick
