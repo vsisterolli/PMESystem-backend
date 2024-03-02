@@ -190,7 +190,7 @@ export class ActionsService {
 
         const registerPromise = this.prismaService.activityLog.create({
             data: {
-                targetId: "2",
+                targetId: promotedUser.id,
                 author: promoter.nick,
                 type: "PROMOTION",
                 description: description,
