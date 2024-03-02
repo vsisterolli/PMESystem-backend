@@ -223,12 +223,12 @@ export class DepartamentsService {
         let userRole;
         request["user"].userDepartamentRole.forEach((role) => {
             if (
-                role.departament === "INS" ||
-                role.departament === "EFEX" ||
-                role.departament === "CDO" ||
-                role.departament === "ESP"
+                role.departamentRoles?.departament === "INS" ||
+                role.departamentRoles?.departament === "EFEX" ||
+                role.departamentRoles?.departament === "CDO" ||
+                role.departamentRoles?.departament === "ESP"
             )
-                userRole = role;
+                userRole = role.departamentRoles;
         });
 
         if (!userRole) return [];
@@ -262,7 +262,7 @@ export class DepartamentsService {
                 powerLevel: 1000
             };
         else
-            request["user"].departamentRoles.forEach((role) => {
+            request["user"].userDepartamentRole.forEach((role) => {
                 if (role.departamentRoles.departament === course.departament)
                     userRole = role.departamentRoles;
             });
@@ -286,7 +286,7 @@ export class DepartamentsService {
                 powerLevel: 1000
             };
         else
-            request["user"].departamentRoles.forEach((role) => {
+            request["user"].userDepartamentRole.forEach((role) => {
                 if (role.departamentRoles.departament === departament)
                     userRole = role.departamentRoles;
             });
