@@ -327,8 +327,8 @@ export class DepartamentsService {
                 powerLevel: 1000
             };
         else
-            request["user"].departamentRoles.forEach((role) => {
-                if (role.departamentRoles.departament === query.departament)
+            request["user"].userDepartamentRole.forEach((role) => {
+                if (role.departamentRoles.departament === query.departament.toUpperCase())
                     userRole = role.departamentRoles;
             });
 
@@ -337,6 +337,7 @@ export class DepartamentsService {
                 "Você não tem permissão para ver essa função."
             );
         }
+
         const COORD_POWER = 10;
         if (query.mode === "all" && userRole.powerLevel < COORD_POWER)
             throw new UnauthorizedException(
@@ -399,7 +400,7 @@ export class DepartamentsService {
                 powerLevel: 1000
             };
         else
-            request["user"].departamentRoles.forEach((role) => {
+            request["user"].userDepartamentRole.forEach((role) => {
                 if (role.departamentRoles.departament === course.departament)
                     userRole = role;
             });
@@ -408,6 +409,9 @@ export class DepartamentsService {
             throw new UnauthorizedException("Sem autorização.");
 
         for (const user of data.approved) {
+            if(user.length <= 1)
+                continue;
+
             const index = data.approved.indexOf(user);
             try {
                 data.approved[index] = (
