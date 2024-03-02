@@ -119,6 +119,9 @@ export class DepartamentsService {
             },
             select: {
                 name: true
+            },
+            orderBy: {
+                powerLevel: 'desc'
             }
         });
     }
