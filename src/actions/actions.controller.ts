@@ -1,8 +1,8 @@
 import {
     Body,
-    Controller,
+    Controller, Get,
     HttpStatus,
-    Post,
+    Post, Query,
     Req,
     Res,
     UseGuards
@@ -15,6 +15,12 @@ import { Request, Response } from "express";
 @Controller("actions")
 export class ActionsController {
     constructor(private actionsService: ActionsService) {}
+
+    @UseGuards(AuthGuard)
+    @Get("/")
+    async getActions(@Req() req: Request, @Query() query) {
+        return this.actionsService.getActions(req, query);
+    }
 
     @UseGuards(AuthGuard)
     @Post("/promote")

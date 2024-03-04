@@ -36,6 +36,12 @@ export class UsersController {
     }
 
     @UseGuards(AuthGuard)
+    @Get("/byRole/:role")
+    async getRole(@Param("role") role: string) {
+        return await this.usersServices.getUsersByRole(role);
+    }
+
+    @UseGuards(AuthGuard)
     @Get("/permissions")
     async getPermissions(@Req() req: Request) {
         return {

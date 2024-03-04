@@ -22,6 +22,17 @@ export class UsersService {
         private habboServices: HabboService
     ) {}
 
+    async getUsersByRole(role) {
+        return this.prisma.user.findMany({
+            where: {
+                roleName: role
+            },
+            select: {
+                nick: true
+            }
+        })
+    }
+
     async getSelfInfo(req: Request) {
         const user = await this.prisma.user.findUnique({
             where: {
@@ -31,7 +42,8 @@ export class UsersService {
                 nick: true,
                 role: {
                     select: {
-                        name: true
+                        name: true,
+                        hierarchyPosition: true
                     }
                 },
                 permissionsObtained: {
@@ -200,7 +212,8 @@ export class UsersService {
                 permissionsObtained: {
                     select: {
                         name: true,
-                        fullName: true
+                        fullName: true,
+                        type: true
                     }
                 },
                 ActivityLog: {

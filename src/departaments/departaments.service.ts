@@ -220,7 +220,7 @@ export class DepartamentsService {
             });
         }
 
-        let userRole;
+        let userRole = [];
         request["user"].userDepartamentRole.forEach((role) => {
             if (
                 role.departamentRoles?.departament === "INS" ||
@@ -228,19 +228,25 @@ export class DepartamentsService {
                 role.departamentRoles?.departament === "CDO" ||
                 role.departamentRoles?.departament === "ESP"
             )
-                userRole = role.departamentRoles;
+                userRole.push(role.departamentRoles);
         });
 
-        if (!userRole) return [];
+        if (userRole.length === 0) return [];
 
-        return this.prismaService.course.findMany({
-            where: {
-                departament: userRole.departament,
-                powerNeeded: {
-                    lte: userRole.powerLevel
+        let courses = [];
+        for (const role of userRole) {
+            const departamentCourses = await this.prismaService.course.findMany({
+                where: {
+                    departament: role.departament,
+                    powerNeeded: {
+                        lte: role.powerLevel
+                    }
                 }
-            }
-        });
+            })
+            courses = [...courses, ...departamentCourses];
+        }
+
+        return courses;
     }
 
     async getCourse(request: Request, acronym: string) {
@@ -448,11 +454,6 @@ export class DepartamentsService {
                     "Um dos usuários não pode receber o curso por não estar cadastrado no system."
                 );
 
-            removePromise.push(
-                this.prismaService.permissionsObtained.deleteMany({
-                    where: { userId: userObj.id }
-                })
-            );
             permissionObtainedData.push({
                 userId: userObj.id,
                 name: course.acronym,

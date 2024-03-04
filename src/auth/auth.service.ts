@@ -56,7 +56,7 @@ export class AuthService {
                 nick: true,
                 role: {
                     select: {
-                        name: true
+                        name: true,
                     }
                 },
                 permissionsObtained: {

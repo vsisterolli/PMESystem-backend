@@ -21,6 +21,85 @@ type UserWithRole = Prisma.UserGetPayload<{
 export class ActionsService {
     constructor(private prismaService: PrismaService) {}
 
+    async getActions(
+      request: Request,
+      query: {
+          action: string;
+          offset: string | null;
+          search: string | null;
+          mode: "mine" | "all";
+      }
+    ) {
+        let userRole;
+
+        if (
+          request["user"].roleName === "Supremo" ||
+          request["user"].roleName === "Conselheiro"
+        )
+            userRole = {
+                powerLevel: 1000
+            };
+        else
+            request["user"].userDepartamentRole.forEach((role) => {
+                if (role.departamentRoles.departament === "RH")
+                    userRole = role.departamentRoles;
+            });
+
+        if (query.mode === "all" && !userRole)
+            throw new UnauthorizedException(
+              "Você só pode ver suas próprias postagens."
+            );
+
+        const sql = {
+            where: {
+                type: query.action
+            },
+            select: {
+                id: true,
+                author: true,
+                user: {
+                    select: {
+                        nick: true
+                    }
+                },
+                description: true,
+                createdAt: true,
+                newRole: true
+            },
+            take: 10,
+            orderBy: [{ createdAt: "desc" }]
+        };
+
+        if (query.mode === "mine") sql.where["author"] = request["user"].nick;
+        if (query.offset) sql["skip"] = Number(query.offset);
+
+        const isNum = (str) => {
+            return !isNaN(str) && !isNaN(parseFloat(str));
+        };
+
+        if (query.search && query.search !== "")
+            sql.where["OR"] = [
+                { author: { contains: query.search } },
+                { description: { contains: query.search } },
+                {
+                    id: {
+                        equals: isNum(query.search) ? Number(query.search) : -1
+                    }
+                },
+                {
+                    user: {nick: {contains: query.search}}
+                }
+            ];
+
+        // @ts-ignore
+        return this.prismaService.$transaction([
+            // @ts-ignore
+            this.prismaService.activityLog.count({ where: sql.where }),
+            // @ts-ignore
+            this.prismaService.activityLog.findMany(sql)
+        ]);
+    }
+
     missingPermissions(
         needed: PermissionsRequired[],
         obtained: PermissionsObtained[]
@@ -148,7 +227,7 @@ export class ActionsService {
 
         // @ts-ignore
         if (
-            !(promotedUser.roleName === "Soldado" && hasCapex) &&
+            !(promotedUser.roleName === "Soldado" && hasCapex) && !(promoter.roleName === "Aspirante a Oficial" && promotedUser.roleName === "Soldado") &&
             this.missingPermissions(
                 promoterRequiredCourses,
                 promoterObtainedPermissions
@@ -172,13 +251,22 @@ export class ActionsService {
                 "Esse usuário não pode ser promovido."
             );
 
-        const deleteCoursesPromise =
+        let deleteCoursesPromise;
+        if(nextRole.name === "Sargento")
+            deleteCoursesPromise = this.prismaService.permissionsObtained.deleteMany({
+                where: {
+                    userId: promotedUser.id,
+                    name: "ECb"
+                }
+            });
+        else deleteCoursesPromise =
             this.prismaService.permissionsObtained.deleteMany({
                 where: {
                     userId: promotedUser.id,
                     type: "COURSE"
                 }
             });
+
         const promotePromise = this.prismaService.user.update({
             where: {
                 nick: promotedUser.nick
@@ -293,6 +381,13 @@ export class ActionsService {
                 "Esse usuário não pode ser rebaixado."
             );
 
+        const removeCourses = this.prismaService.permissionsObtained.deleteMany({
+            where: {
+                userId: demotedUser.id,
+                type: "COURSE"
+            }
+        });
+
         const promotePromise = this.prismaService.user.update({
             where: {
                 nick: demotedUser.nick
@@ -308,11 +403,11 @@ export class ActionsService {
                 author: demoter.nick,
                 type: "DEMOTION",
                 description: description,
-                newRole: nextRole.name
+                newRole: nextRole.name,
             }
         });
 
-        await Promise.all([promotePromise, registerPromise]);
+        await Promise.all([removeCourses, promotePromise, registerPromise]);
     }
     async fireUser(nick: string, description: string, request: Request) {
         const firedUserPromise = this.prismaService.user.findUnique({
