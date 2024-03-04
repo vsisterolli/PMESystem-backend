@@ -14,6 +14,7 @@ import {
 import * as bcrypt from "bcrypt";
 import { HabboService } from "../habbo/habbo.service";
 import { Request } from "express";
+import * as process from "process";
 
 @Injectable()
 export class UsersService {
@@ -22,7 +23,32 @@ export class UsersService {
         private habboServices: HabboService
     ) {}
 
+    async getProfileToDC(request, nick) {
+        if(request.headers.authorization !== process.env.DISCORD_TOKEN)
+            throw new UnauthorizedException("Unauthorized")
+
+        nick = decodeURIComponent(nick);
+        console.log(nick)
+
+        const user = await this.prisma.user.findUnique({
+            where: {
+                nick
+            },
+            select: {
+                roleName: true,
+                role: true,
+                userDepartamentRole: true,
+            }
+        })
+        return user;
+
+
+    }
+
     async getUsersByRole(role) {
+        if(role === "Recruta")
+            return [];
+
         return this.prisma.user.findMany({
             where: {
                 roleName: role

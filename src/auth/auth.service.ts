@@ -24,6 +24,11 @@ export class AuthService {
 
     async getRoles() {
         return this.prisma.roles.findMany({
+            where: {
+              NOT: {
+                  name: "Recruta"
+              }
+            },
             select: {
                 hierarchyKind: true,
                 hierarchyPosition: true,

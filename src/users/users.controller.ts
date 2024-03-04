@@ -23,6 +23,14 @@ import { AuthGuard } from "../auth/auth.guard";
 export class UsersController {
     constructor(private usersServices: UsersService) {}
 
+    @Get("/discordRoles/:nick")
+    async getDcRoles(
+      @Req() request: Request,
+      @Param('nick') nick: string
+    ) {
+        return await this.usersServices.getProfileToDC(request, nick);
+    }
+
     @UseGuards(AuthGuard)
     @Get("/recent")
     async recentUsers() {

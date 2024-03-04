@@ -140,11 +140,12 @@ export class DepartamentsService {
                 departamentRoles: {
                     select: {
                         name: true,
-                        departament: true
+                        departament: true,
+                        powerLevel: true
                     }
                 },
                 createdAt: true
-            }
+            },
         });
     }
 
