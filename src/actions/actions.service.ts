@@ -1,8 +1,9 @@
 import {
+    BadRequestException,
     ForbiddenException,
     Injectable,
-    UnauthorizedException
-} from "@nestjs/common";
+    UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from "../prisma.service";
 import { Request } from "express";
 import * as moment from "moment";
@@ -148,6 +149,10 @@ export class ActionsService {
             throw new UnauthorizedException(
                 "Você não pode promover esse usuário."
             );
+        }
+
+        if(!promotedUser.isAccountActive) {
+            throw new BadRequestException("Ajude-o a ativar a conta no system antes de promovê-lo.")
         }
 
         const daysInRole = moment().diff(
