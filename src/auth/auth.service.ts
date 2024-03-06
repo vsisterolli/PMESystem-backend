@@ -62,6 +62,7 @@ export class AuthService {
                 role: {
                     select: {
                         name: true,
+                        hierarchyPosition: true
                     }
                 },
                 permissionsObtained: {

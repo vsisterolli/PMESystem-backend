@@ -433,6 +433,8 @@ export class DepartamentsService {
 
         if (data.courseAcronym === "CFPM") {
             for (const user of data.approved) {
+                if(user.length <= 1)
+                    continue;
                 try {
                     await this.prismaService.user.create({
                         data: { nick: user }
@@ -447,6 +449,8 @@ export class DepartamentsService {
             permissionObtainedData = [],
             removePromise = [];
         for (const user of data.approved) {
+            if(user.length <= 1)
+                continue;
             const userObj = (await this.prismaService.user.findUnique({
                 where: { nick: user }
             })) as User;
