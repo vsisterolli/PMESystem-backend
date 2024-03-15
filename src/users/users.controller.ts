@@ -5,17 +5,17 @@ import {
     HttpStatus,
     Param,
     Patch,
-    Post,
+    Post, Put,
     Req,
     Res,
-    UseGuards
-} from "@nestjs/common";
+    UseGuards,
+} from '@nestjs/common';
 import { Request, Response } from "express";
 import {
     ActivateUserDTO,
-    ChangeDiscordDTO,
-    ContractUserDTO
-} from "./users.dtos";
+    ChangeDiscordDTO, ChangeUserNickDTO,
+    ContractUserDTO,
+} from './users.dtos';
 import { UsersService } from "./users.service";
 import { AuthGuard } from "../auth/auth.guard";
 
@@ -43,6 +43,11 @@ export class UsersController {
         return this.usersServices.getSelfInfo(req);
     }
 
+    @UseGuards(AuthGuard)
+    @Put("/nick")
+    async changeUserNick(@Req() req: Request, @Body() changeUserNickDTO: ChangeUserNickDTO) {
+        return await this.usersServices.changeUserNick(req, changeUserNickDTO.prevNick, changeUserNickDTO.newNick);
+    }
     @UseGuards(AuthGuard)
     @Get("/byRole/:role")
     async getRole(@Param("role") role: string) {

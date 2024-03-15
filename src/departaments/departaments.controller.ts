@@ -4,11 +4,11 @@ import {
     Get,
     NotFoundException,
     Param,
-    Post,
+    Post, Put,
     Query,
     Req,
-    UseGuards
-} from "@nestjs/common";
+    UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from "../auth/auth.guard";
 import { Request } from "express";
 import { DepartamentsService } from "./departaments.service";
@@ -28,6 +28,22 @@ export class DepartamentsController {
             return await this.departamentServices.getChangeableRoles(
                 req,
                 departament.toUpperCase()
+            );
+        } catch (e) {
+            throw new NotFoundException("Função inexistente.");
+        }
+    }
+
+    @UseGuards(AuthGuard)
+    @Put("/classes/:id")
+    async changeClass(
+      @Req() req: Request,
+      @Param("id") id: string
+    ) {
+        try {
+            return await this.departamentServices.getChangeableRoles(
+              req,
+              id
             );
         } catch (e) {
             throw new NotFoundException("Função inexistente.");

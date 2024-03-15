@@ -11,6 +11,14 @@ export class ActivateUserDTO {
     sessionId: string;
 }
 
+export class ChangeUserNickDTO {
+    @IsNotEmpty()
+    prevNick: string;
+
+    @IsNotEmpty()
+    newNick: string;
+}
+
 export class ChangeDiscordDTO {
     @IsNotEmpty()
     discord: string;

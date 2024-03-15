@@ -1,8 +1,8 @@
 import {
     BadRequestException,
-    Injectable,
-    UnauthorizedException
-} from "@nestjs/common";
+    Injectable, NotFoundException,
+    UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from "../prisma.service";
 import { Prisma, Session, User } from "@prisma/client";
 import {
@@ -41,6 +41,76 @@ export class UsersService {
             }
         })
         return user;
+
+
+    }
+
+    async changeUserNick(request, prevNick, newNick) {
+        if(request["user"].role.hierarchyPosition <= 10 || request["user"].role.hierarchyKind === "EXECUTIVE")
+            throw new UnauthorizedException("Sem permissão para trocar nick")
+
+        try {
+            prevNick = (await this.habboServices.findHabboUser(prevNick)).name;
+            newNick = (await this.habboServices.findHabboUser(newNick)).name;
+        } catch {
+            newNick = "";
+        }
+        if(newNick === "")
+            throw new BadRequestException("Usuário não existe no habbo, verifique se escreveu o nick corretamente.")
+
+        // @ts-ignore
+        const user = await this.prisma.user.findUnique({
+            where: { nick: prevNick },
+            select: { role: true, id: true }
+        }) as User;
+
+        if(!user)
+            throw new NotFoundException("Usuário não encontrado no PME System.")
+
+        // @ts-ignore
+        if(user.role.hierarchyPosition >= request["user"].role.hierarchyPosition)
+            throw new BadRequestException("Você não pode mudar o nick desse usuário.")
+
+
+        const isExistentUser = await this.prisma.user.findUnique({
+          where: {nick: newNick}
+        }) as User;
+
+        if(isExistentUser && isExistentUser.roleName !== "Recruta")
+            throw new BadRequestException("O nick novo está cadastrado como um usuário ativo no PME System");
+
+        if(isExistentUser) {
+            await this.prisma.activityLog.updateMany({
+                where: {
+                    targetId: isExistentUser.id
+                },
+                data: {
+                    targetId: user.id
+                }
+            })
+            await this.prisma.user.delete({
+                where: { id: isExistentUser.id }
+            })
+        }
+
+        console.log(user)
+        await this.prisma.user.update({
+            where: {
+                nick: prevNick
+            },
+            data: {
+                nick: newNick
+            }
+        })
+
+        await this.prisma.activityLog.create({
+                data: {
+                    type: "CHANGE",
+                    targetId: user.id,
+                    author: request["user"].nick,
+                    description: `Troca de conta || Nick antigo: ${prevNick}\n  || Novo nick: ${newNick}`
+                }
+        })
 
 
     }
@@ -214,14 +284,12 @@ export class UsersService {
     async getUserProfile(nick) {
         nick = decodeURIComponent(nick);
         let newNick = "";
-        console.log(newNick)
         try {
             newNick = (await this.habboServices.findHabboUser(nick)).name;
         } catch {
             newNick = "";
         }
 
-        console.log(newNick)
         const user = await this.prisma.user.findUnique({
             where: {
                 nick: newNick !== "" ? newNick : nick

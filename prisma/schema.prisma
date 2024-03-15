@@ -45,6 +45,7 @@ enum ActivityType {
   CONTRACTING
   SELLING
   APPROVATION
+  CHANGE
 }
 
 model Classes {
@@ -56,6 +57,7 @@ model Classes {
   courseAcronym String
   author        String
   departament   Departament
+  updatedBy String?
 }
 
 model Course {

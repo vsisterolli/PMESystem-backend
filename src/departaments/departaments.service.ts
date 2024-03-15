@@ -7,7 +7,7 @@ import {
 import { Request } from "express";
 import { PrismaService } from "../prisma.service";
 import {DeleteUserDTO, PostClassDTO, PostRoleDTO} from "./departaments.dtos";
-import { Course, DepartamentRole, User } from "@prisma/client";
+import { Classes, Course, DepartamentRole, User } from '@prisma/client';
 import { HabboService } from "../habbo/habbo.service";
 
 @Injectable()
@@ -125,6 +125,48 @@ export class DepartamentsService {
             }
         });
     }
+
+    /*
+    async changeClass(request: Request, id, newData: PostClassDTO ) {
+        const cls = await this.prismaService.classes.findUnique({where: {id}}) as Classes;
+
+        let applierRole;
+        if (
+          request["user"].roleName === "Supremo" ||
+          request["user"].roleName === "Conselheiro"
+        )
+            applierRole = {
+                powerLevel: 1000
+            };
+        else
+            request["user"].userDepartamentRole.forEach(
+              (applierCurrentRole) => {
+                  if (
+                    cls.departament ===
+                    applierCurrentRole.departamentRoles.departament
+                  )
+                      applierRole = applierCurrentRole.departamentRoles;
+              }
+            );
+
+        if (!applierRole)
+            throw new UnauthorizedException(
+              "Sem permissão para gerenciar essa função."
+            );
+
+        // @ts-ignore
+        return this.prismaService.classes.update({
+            where: { id },
+            data: {
+                author: newData.author,
+                description: newData.description,
+                room: newData.room,
+                createdAt: postTime,
+                updatedBy: request["user"].id
+            }
+        })
+    }
+    */
 
     async getUsersFromDepartament(departament) {
         return this.prismaService.userDepartamentRole.findMany({
@@ -283,6 +325,7 @@ export class DepartamentsService {
     }
 
     async getDepartamentCourses(request: Request, departament: string) {
+
         let userRole;
 
         if (
@@ -432,16 +475,34 @@ export class DepartamentsService {
         }
 
         if (data.courseAcronym === "CFPM") {
+
+            for(const user of data.approved) {
+                const userObj = await this.prismaService.user.findUnique({
+                    where: {nick: user}
+                }) as User;
+
+                if(userObj && userObj.roleName !== "Recruta")
+                    throw new BadRequestException("Um dos aprovados é militar ativo e não pode receber o CFPM.")
+            }
+
             for (const user of data.approved) {
                 if(user.length <= 1)
                     continue;
-                try {
+                const userObj = await this.prismaService.user.findUnique({
+                  where: {nick: user}
+                }) as User;
+
+                if(!userObj)
                     await this.prismaService.user.create({
                         data: { nick: user }
                     });
-                } catch {
-                    continue;
-                }
+
+                if(userObj)
+                    await this.prismaService.user.update({
+                        where: { nick: user },
+                        data: { roleName: "Soldado" }
+                    });
+
             }
         }
 

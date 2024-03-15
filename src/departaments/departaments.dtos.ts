@@ -18,6 +18,23 @@ export class PostClassDTO {
     room: string;
 }
 
+export class ChangeClassDTO {
+  @IsNotEmpty()
+  description: string;
+
+  @IsNotEmpty()
+  courseAcronym: string;
+
+  @IsNotEmpty()
+  room: string;
+
+  @IsNotEmpty()
+  author: string;
+
+  @IsNotEmpty()
+  postTime: Date;
+}
+
 export class PostRoleDTO {
     @IsNotEmpty()
     roleName;

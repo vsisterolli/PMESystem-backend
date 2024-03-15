@@ -52,7 +52,8 @@ export class AuthGuard implements CanActivate {
                         select: {
                             departamentRoles: true
                         }
-                    }
+                    },
+                    role: true
                 }
             });
             if (request["user"].isAccountActive === false)
