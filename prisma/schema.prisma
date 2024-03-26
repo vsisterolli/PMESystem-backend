@@ -57,7 +57,7 @@ model Classes {
   courseAcronym String
   author        String
   departament   Departament
-  updatedBy String?
+  updatedBy     String?
 }
 
 model Course {
@@ -84,26 +84,40 @@ model User {
   isAdmin             Boolean               @default(false)
   role                Roles?                @relation(fields: [roleName], references: [name])
   roleName            String                @default("Soldado")
+  bonificationsInRole Int                   @default(0)
+  totalBonifications  Int                   @default(0)
   permissionsObtained PermissionsObtained[]
   ActivityLog         ActivityLog[]
   capesAtribbuted     capesAtribbuted[]
   userDepartamentRole userDepartamentRole[]
+  Bonification        Bonification[]
 }
 
 model ActivityLog {
-  id                Int          @id @default(autoincrement())
-  type              ActivityType
-  targetId          String
-  author            String
-  courseAcronym     String?
-  isActive          Boolean      @default(true)
-  description       String       @db.VarChar(4000)
-  course            Course?      @relation(fields: [courseAcronym], references: [acronym])
-  user              User         @relation(fields: [targetId], references: [id], onDelete: Cascade)
-  createdAt         DateTime     @default(now())
-  expiresAt         DateTime?
-  newRole           String?
-  oldWarningsAmount String?
+  id                  Int          @id @default(autoincrement())
+  type                ActivityType
+  targetId            String
+  author              String
+  courseAcronym       String?
+  isActive            Boolean      @default(true)
+  description         String       @db.VarChar(4000)
+  course              Course?      @relation(fields: [courseAcronym], references: [acronym])
+  user                User         @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  createdAt           DateTime     @default(now())
+  expiresAt           DateTime?
+  newRole             String?
+  bonificationsInRole Int?
+  oldWarningsAmount   String?
+}
+
+model Bonification {
+  id        Int      @id @default(autoincrement())
+  author    String
+  targetId  String
+  user      User     @relation(fields: [targetId], references: [id])
+  reason    String
+  createdAt DateTime @default(now())
+  gains     Int      @default(0)
 }
 
 model Cape {
@@ -142,9 +156,9 @@ model userDepartamentRole {
   departament       Departament
   departamentRoles  DepartamentRole @relation(fields: [departamentRoleId], references: [id], onDelete: Cascade)
   user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
 
   @@unique([userId, departamentRoleId], name: "departamentIdentifier")
-  createdAt DateTime @default(now())
 }
 
 model DepartamentRole {

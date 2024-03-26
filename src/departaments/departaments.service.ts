@@ -9,6 +9,7 @@ import { PrismaService } from "../prisma.service";
 import {DeleteUserDTO, PostClassDTO, PostRoleDTO} from "./departaments.dtos";
 import { Classes, Course, DepartamentRole, User } from '@prisma/client';
 import { HabboService } from "../habbo/habbo.service";
+import * as moment from "moment/moment";
 
 @Injectable()
 export class DepartamentsService {
@@ -410,10 +411,21 @@ export class DepartamentsService {
             return !isNaN(str) && !isNaN(parseFloat(str));
         };
 
+        const dateToSearch = {
+            begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
+            end: moment(query.search, "DD/MM/YYYY").endOf("day")
+        }
+
         if (query.search && query.search !== "")
             sql.where["OR"] = [
                 { author: { contains: query.search } },
                 { approved: { contains: query.search } },
+                {
+                    createdAt: {
+                        gte: dateToSearch.begin,
+                        lte: dateToSearch.end
+                    }
+                },
                 {
                     id: {
                         equals: isNum(query.search) ? Number(query.search) : -1

@@ -7,7 +7,7 @@ import {
     Res,
     UseGuards
 } from "@nestjs/common";
-import { DemoteDTO, FireDTO, PromoteDTO, WarnDTO } from "./actions.dtos";
+import { BonifyDTO, DemoteDTO, FireDTO, PromoteDTO, WarnDTO } from './actions.dtos';
 import { AuthGuard } from "../auth/auth.guard";
 import { ActionsService } from "./actions.service";
 import { Request, Response } from "express";
@@ -21,6 +21,13 @@ export class ActionsController {
     async getActions(@Req() req: Request, @Query() query) {
         return this.actionsService.getActions(req, query);
     }
+
+    @UseGuards(AuthGuard)
+    @Get("/mostBonificationsWeekly")
+    async getMostBonifiedUsers() {
+        return await this.actionsService.getMostBonifiedInWeek();
+    }
+
 
     @UseGuards(AuthGuard)
     @Post("/promote")
@@ -58,6 +65,23 @@ export class ActionsController {
         } catch (e) {
             res.status(HttpStatus.BAD_REQUEST).send([e.message]);
         }
+    }
+
+    @UseGuards(AuthGuard)
+    @Post("/bonify")
+    async bonifyUser(
+        @Body() bonifyUserDTO: BonifyDTO,
+        @Req() request: Request
+    ) {
+        return await this.actionsService.bonifyUser(request, bonifyUserDTO.user, bonifyUserDTO.reason);
+    }
+
+    @UseGuards(AuthGuard)
+    @Get("/bonifications")
+    async getBonifications (
+      @Req() req: Request, @Query() query
+    ) {
+        return await this.actionsService.getBonifications(req, query);
     }
 
     @UseGuards(AuthGuard)

@@ -22,6 +22,87 @@ type UserWithRole = Prisma.UserGetPayload<{
 export class ActionsService {
     constructor(private prismaService: PrismaService) {}
 
+    async getMostBonifiedInWeek() {
+        return this.prismaService.$queryRaw(Prisma.sql`
+            SELECT u.nick, CAST(SUM(b.gains) AS numeric) AS totalGains 
+            FROM "Bonification" b
+            JOIN "User" u
+            ON u.id = b."targetId"
+            WHERE b."createdAt" >= ${moment().startOf("week").toDate()}
+            GROUP BY u.nick
+            ORDER BY totalGains DESC
+            LIMIT 5;   
+        `);
+    }
+
+    async getBonifications(
+      request: Request,
+      query: {
+          offset: string | null;
+          search: string | null;
+          mode: "mine" | "all";
+      }
+    ){
+        const sql = {
+            where: {},
+            select: {
+                id: true,
+                author: true,
+                user: {
+                    select: {
+                        nick: true
+                    }
+                },
+                gains: true,
+                reason: true,
+                createdAt: true,
+            },
+            take: 10,
+            orderBy: [{ createdAt: "desc" }]
+        };
+
+        if (query.mode === "mine") sql.where["author"] = request["user"].nick;
+        if (query.offset) sql["skip"] = Number(query.offset);
+
+        const isNum = (str) => {
+            return !isNaN(str) && !isNaN(parseFloat(str));
+        };
+
+        const dateToSearch = {
+            begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
+            end: moment(query.search, "DD/MM/YYYY").endOf("day")
+
+        }
+
+        if (query.search && query.search !== "")
+            sql.where["OR"] = [
+                { author: { contains: query.search } },
+                { reason: { contains: query.search } },
+                {
+                    createdAt: {
+                        gte: dateToSearch.begin,
+                        lte: dateToSearch.end
+                    }
+                },
+                {
+                    id: {
+                        equals: isNum(query.search) ? Number(query.search) : -1
+                    }
+                },
+                {
+                    user: {nick: {contains: query.search}}
+                }
+            ];
+
+        // @ts-ignore
+        return this.prismaService.$transaction([
+            // @ts-ignore
+            this.prismaService.bonification.count({ where: sql.where }),
+            // @ts-ignore
+            this.prismaService.bonification.findMany(sql)
+        ]);
+    }
+
     async getActions(
       request: Request,
       query: {
@@ -50,6 +131,12 @@ export class ActionsService {
             throw new UnauthorizedException(
               "Você só pode ver suas próprias postagens."
             );
+
+        const dateToSearch = {
+            begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
+            end: moment(query.search, "DD/MM/YYYY").endOf("day")
+
+        }
 
         const sql = {
             where: {
@@ -82,6 +169,12 @@ export class ActionsService {
             sql.where["OR"] = [
                 { author: { contains: query.search } },
                 { description: { contains: query.search } },
+                {
+                    createdAt: {
+                        gte: dateToSearch.begin,
+                        lte: dateToSearch.end
+                    }
+                },
                 {
                     id: {
                         equals: isNum(query.search) ? Number(query.search) : -1
@@ -277,7 +370,8 @@ export class ActionsService {
                 nick: promotedUser.nick
             },
             data: {
-                roleName: nextRole.name
+                roleName: nextRole.name,
+                bonificationsInRole: 0
             }
         });
 
@@ -287,7 +381,8 @@ export class ActionsService {
                 author: promoter.nick,
                 type: "PROMOTION",
                 description: description,
-                newRole: nextRole.name
+                newRole: nextRole.name,
+                bonificationsInRole: promotedUser.bonificationsInRole
             }
         });
 
@@ -296,6 +391,65 @@ export class ActionsService {
             registerPromise,
             deleteCoursesPromise
         ]);
+    }
+
+    async bonifyUser(request: Request, nick: string, reason: string) {
+        const bonifiedUser = await this.prismaService.user.findUnique({
+            where: { nick },
+            select: { role: true, id: true }
+        }) as UserWithRole;
+
+        if(!bonifiedUser || (bonifiedUser.role.hierarchyPosition > request["user"].role.gratifyUntilRolePosition && reason !== "Recrutamento") )
+            throw new BadRequestException("Você não pode bonificar esse usuário.")
+
+        const today = moment().startOf("day")
+
+        // @ts-ignore
+        const bonifiedTodayCount = await this.prismaService.bonification.findMany({
+            where: {
+                createdAt: {
+                    // @ts-ignore
+                    gte: today
+                },
+                targetId: bonifiedUser.id
+            },
+            orderBy: {
+                createdAt: "desc"
+            }
+        })
+
+        if(bonifiedTodayCount.length >= 3)
+            throw new BadRequestException("O policial já foi gratificado 3x hoje.")
+
+        if(bonifiedTodayCount.length && reason !== "Recrutamento") {
+            const lastBonified = bonifiedTodayCount.find(element => element.reason !== "Recrutamento")
+            if(lastBonified && moment().diff(moment(lastBonified.createdAt), "minutes") < 30)
+                throw new BadRequestException("Aguarde 30 minutos após a última bonificação deste policial antes de postar uma nova.")
+        }
+
+        await Promise.all([
+            this.prismaService.user.update({
+                where: { nick },
+                data: {
+                    bonificationsInRole: {
+                        increment: 5
+                    },
+                    totalBonifications: {
+                        increment: 5
+                    }
+                }
+            }),
+            this.prismaService.bonification.create({
+                data: {
+                    targetId: bonifiedUser.id,
+                    reason,
+                    author: request["user"].nick,
+                    gains: (reason === "Recrutamento" || reason === "Atividade de Interação" ? 10 : 5)
+                }
+            })
+        ])
+
+
     }
 
     async demoteUser(nick: string, description: string, request: Request) {
@@ -398,7 +552,8 @@ export class ActionsService {
                 nick: demotedUser.nick
             },
             data: {
-                roleName: nextRole.name
+                roleName: nextRole.name,
+                bonificationsInRole: 0
             }
         });
 
@@ -491,7 +646,8 @@ export class ActionsService {
             },
             data: {
                 roleName: "Recruta",
-                isAccountActive: false
+                isAccountActive: false,
+                bonificationsInRole: 0
             }
         });
 

@@ -303,6 +303,8 @@ export class UsersService {
                 discord: true,
                 advNum: true,
                 capeSelected: true,
+                bonificationsInRole: true,
+                totalBonifications: true,
                 permissionsObtained: {
                     select: {
                         name: true,
@@ -477,7 +479,8 @@ export class UsersService {
                     id: user.id
                 },
                 data: {
-                    roleName: data.role
+                    roleName: data.role,
+                    bonificationsInRole: 0
                 }
             });
         } else {

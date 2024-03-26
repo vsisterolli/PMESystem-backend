@@ -16,6 +16,13 @@ export class DemoteDTO {
     description: string;
 }
 
+export class BonifyDTO {
+    @IsNotEmpty()
+    user: string;
+
+    @IsNotEmpty()
+    reason: string;
+}
 export class FireDTO {
     @IsNotEmpty()
     firedNick: string;
