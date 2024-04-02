@@ -445,8 +445,8 @@ export class DepartamentsService {
 
         if(moment(query.search, "DD/MM/YYYY").isValid())
             dateToSearch = {
-                begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
-                end: moment(query.search, "DD/MM/YYYY").endOf("day")
+                begin: moment(query.search, "DD/MM/YYYY").startOf("day").add(3, "hours"),
+                end: moment(query.search, "DD/MM/YYYY").endOf("day").add(3, "hours")
             }
 
         if (query.search && query.search !== "")

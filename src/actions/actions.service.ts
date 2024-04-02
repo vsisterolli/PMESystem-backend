@@ -14,6 +14,7 @@ import {
     Roles, User,
 } from '@prisma/client';
 import { HabboService } from '../habbo/habbo.service';
+import { uuid } from 'uuidv4';
 
 type UserWithRole = Prisma.UserGetPayload<{
     include: { role: true };
@@ -78,8 +79,8 @@ export class ActionsService {
 
         if(moment(query.search, "DD/MM/YYYY").isValid())
             dateToSearch = {
-                begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
-                end: moment(query.search, "DD/MM/YYYY").endOf("day")
+                begin: moment(query.search, "DD/MM/YYYY").startOf("day").add(3, "hours"),
+                end: moment(query.search, "DD/MM/YYYY").endOf("day").add(3, "hours")
             }
 
         if (query.search && query.search !== "")
@@ -141,14 +142,14 @@ export class ActionsService {
             );
 
         let dateToSearch = {
-            begin: moment().endOf("day"),
-            end: moment().startOf("day")
+            begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
+            end: moment(query.search, "DD/MM/YYYY").endOf("day")
         }
 
         if(moment(query.search, "DD/MM/YYYY").isValid())
             dateToSearch = {
-                begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
-                end: moment(query.search, "DD/MM/YYYY").endOf("day")
+                begin: moment(query.search, "DD/MM/YYYY").startOf("day").add(3, "hours"),
+                end: moment(query.search, "DD/MM/YYYY").endOf("day").add(3, "hours")
             }
 
         const sql = {
@@ -469,9 +470,8 @@ export class ActionsService {
 
     }
 
-    /*
     async demoteMultiple(request: Request, nicks: string[], description) {
-        let RHrole = request["user"].departamentRoles.filter(role => role.departamentRoles.departament === "RH")
+        let RHrole = request["user"].userDepartamentRole.filter(role => role.departamentRoles.departament === "RH")
 
         if(request["user"].roleName === "Conselheiro" || request["user"].roleName === "Supremo")
             RHrole = {
@@ -482,21 +482,18 @@ export class ActionsService {
             throw new UnauthorizedException("Você não tem permissão para usar o em massa.")
 
         for (const [index, user] of nicks.entries()) {
-            const userRealNick = (await this.habboService.findHabboUser(user)).name;
+            if(user.length <= 1)
+                continue;
+
+            let userRealNick;
+            try {
+                userRealNick = (await this.habboService.findHabboUser(user)).name;
+            } catch {
+                throw new BadRequestException(user + " não foi encontrado no habbo.")
+            }
             nicks[index] = userRealNick;
 
             const userInDb = await this.prismaService.user.findUnique({ where: { nick: userRealNick}, include: { role: true }})
-
-            if(!userInDb)
-                throw new BadRequestException("Um dos usuários não foi encontrado. Por favor confira os nicks antes de prosseguir.")
-
-            if((userInDb.role as Roles).hierarchyKind === "MILITARY" && (userInDb.role as Roles).hierarchyPosition >= 9)
-                throw new BadRequestException("Oficiais-Generais acima do corpo militar não podem ser punidos pelo em massa")
-        }
-
-        const promisesToAwait = [];
-        for (const user of nicks) {
-            const userInDb = await this.prismaService.user.findUnique({ where: {nick: user}, include: {id: true, role: true}}) as User;
 
             // @ts-ignore
             const role = await this.prismaService.roles.findUnique({
@@ -508,19 +505,330 @@ export class ActionsService {
                 }
             })
 
+            if(!userInDb)
+                throw new BadRequestException(userRealNick + " não foi encontrado. Por favor confira os nicks antes de prosseguir.")
+
+            if(userInDb.role.name === "Soldado" || userInDb.role.name === "Estagiário")
+                throw new BadRequestException(userRealNick + " é soldado/estagiário e não pode ser rebaixado.")
+
+            if((userInDb.role as Roles).hierarchyKind === "MILITARY" && (userInDb.role as Roles).hierarchyPosition >= 9)
+                throw new BadRequestException(userRealNick + " é um Oficial-General e Oficiais-Generais acima do corpo militar não podem ser punidos pelo em massa")
+        }
+
+        const promisesToAwait = [];
+        const actionId = uuid();
+
+        for (const user of nicks) {
+            if(user.length <= 1)
+                continue;
+
+            const userInDb = await this.prismaService.user.findUnique({ where: {nick: user}, select: {id: true, roleName: true, lastPromoted: true, bonificationsInRole: true, totalBonifications: true, role: true}});
+
+            // @ts-ignore
+            const role = await this.prismaService.roles.findUnique({
+                where: {
+                    roleIdentifier: {
+                        hierarchyKind: userInDb.role.hierarchyKind,
+                        hierarchyPosition: userInDb.role.hierarchyPosition - 1
+                    }
+                }
+            }) as Roles;
+
             promisesToAwait.push(this.prismaService.user.update({
                 where: {
                     id: userInDb.id
                 },
                 data: {
-                    totalBonifications: 0,
+                    bonificationsInRole: 0,
+                    roleName: role.name,
+                    lastPromoted: new Date()
+                }
+            }))
 
+            promisesToAwait.push(this.prismaService.permissionsObtained.deleteMany({
+                where: {
+                    userId: userInDb.id,
+                    type: "COURSE"
+                }
+            }))
+
+            if(role.hierarchyPosition === 5)
+                promisesToAwait.push(this.prismaService.permissionsObtained.deleteMany({
+                    where: {
+                        userId: userInDb.id,
+                        type: "COURSE"
+                    }
+                }))
+
+            promisesToAwait.push(this.prismaService.activityLog.create({
+                data: {
+                    targetId: userInDb.id,
+                    author: request["user"].nick,
+                    type: "DEMOTION",
+                    description,
+                    newRole: role.name,
+                    multipleId: actionId
+                }
+            }))
+
+            promisesToAwait.push(this.prismaService.userBeforeAction.create({
+                data: {
+                    mulipleId: actionId,
+                    roleName: userInDb.roleName,
+                    userLastPromoted: userInDb.lastPromoted,
+                    bonificationsInRole: userInDb.bonificationsInRole,
+                    totalBonifications: userInDb.totalBonifications
                 }
             }))
         }
 
+        return await Promise.all(promisesToAwait);
+
     }
-     */
+
+
+    async fireMultiple(request: Request, nicks: string[], description) {
+        let RHrole = request["user"].userDepartamentRole.filter(role => role.departamentRoles.departament === "RH")
+
+        if(request["user"].roleName === "Conselheiro" || request["user"].roleName === "Supremo")
+            RHrole = {
+                powerLevel: 99
+            }
+
+        if(!RHrole)
+            throw new UnauthorizedException("Você não tem permissão para usar o em massa.")
+
+        for (const [index, user] of nicks.entries()) {
+            if(user.length <= 1)
+                continue;
+
+            let userRealNick;
+            try {
+                userRealNick = (await this.habboService.findHabboUser(user)).name;
+            } catch {
+                throw new BadRequestException(user + " não foi encontrado no habbo.")
+            }
+            nicks[index] = userRealNick;
+
+            const userInDb = await this.prismaService.user.findUnique({ where: { nick: userRealNick}, include: { role: true }})
+
+            if(!userInDb)
+                throw new BadRequestException(userRealNick + " não foi encontrado. Por favor confira os nicks antes de prosseguir.")
+
+            if(userInDb.role.name === "Recruta")
+                throw new BadRequestException(userRealNick + " não é um policial ativo para ser demitido novamente.")
+
+            if((userInDb.role as Roles).hierarchyKind === "MILITARY" && (userInDb.role as Roles).hierarchyPosition >= 9)
+                throw new BadRequestException(userRealNick + " é um Oficial-General e Oficiais-Generais acima do corpo militar não podem ser punidos pelo em massa")
+        }
+
+        const promisesToAwait = [];
+        const actionId = uuid();
+
+        for (const user of nicks) {
+            if(user.length <= 1)
+                continue;
+
+            const userInDb = await this.prismaService.user.findUnique({ where: {nick: user}, select: {id: true, roleName: true, lastPromoted: true, bonificationsInRole: true, totalBonifications: true, role: true}});
+
+            promisesToAwait.push(this.prismaService.user.update({
+                where: {
+                    id: userInDb.id
+                },
+                data: {
+                    bonificationsInRole: 0,
+                    totalBonifications: 0,
+                    roleName: "Recruta",
+                    lastPromoted: new Date()
+                }
+            }))
+
+            promisesToAwait.push(this.prismaService.permissionsObtained.deleteMany({
+                where: {
+                    userId: userInDb.id
+                }
+            }))
+
+            promisesToAwait.push(this.prismaService.activityLog.create({
+                data: {
+                    targetId: userInDb.id,
+                    author: request["user"].nick,
+                    type: "FIRE",
+                    description,
+                    newRole: "Recruta",
+                    multipleId: actionId
+                }
+            }))
+
+            promisesToAwait.push(this.prismaService.userDepartamentRole.deleteMany({
+                where: {
+                    userId: userInDb.id
+                }
+            }))
+
+            promisesToAwait.push(this.prismaService.userBeforeAction.create({
+                data: {
+                    mulipleId: actionId,
+                    roleName: userInDb.roleName,
+                    userLastPromoted: userInDb.lastPromoted,
+                    bonificationsInRole: userInDb.bonificationsInRole,
+                    totalBonifications: userInDb.totalBonifications
+                }
+            }))
+        }
+
+        return await Promise.all(promisesToAwait);
+    }
+
+    async warnMultiple(request: Request, nicks: string[], description) {
+        let RHrole = request["user"].userDepartamentRole.filter(role => role.departamentRoles.departament === "RH")
+
+        if(request["user"].roleName === "Conselheiro" || request["user"].roleName === "Supremo")
+            RHrole = {
+                powerLevel: 99
+            }
+
+        if(!RHrole)
+            throw new UnauthorizedException("Você não tem permissão para usar o em massa.")
+
+        for (const [index, user] of nicks.entries()) {
+            if(user.length <= 1)
+                continue;
+
+            let userRealNick;
+            try {
+                userRealNick = (await this.habboService.findHabboUser(user)).name;
+            } catch {
+                throw new BadRequestException(user + " não foi encontrado no habbo.")
+            }
+            nicks[index] = userRealNick;
+
+            const userInDb = await this.prismaService.user.findUnique({ where: { nick: userRealNick}, include: { role: true }})
+
+            if(!userInDb)
+                throw new BadRequestException(userRealNick + " não foi encontrado. Por favor confira os nicks antes de prosseguir.")
+
+            if(userInDb.role.name === "Recruta")
+                throw new BadRequestException(userRealNick + " não é um policial ativo.")
+
+            if((userInDb.role as Roles).hierarchyKind === "MILITARY" && (userInDb.role as Roles).hierarchyPosition >= 9)
+                throw new BadRequestException(userRealNick + " é um Oficial-General e Oficiais-Generais acima do corpo militar não podem ser punidos pelo em massa")
+        }
+
+        const promisesToAwait = [];
+        const actionId = uuid();
+
+
+
+        for (const user of nicks) {
+            if(user.length <= 1)
+                continue;
+
+            const userInDb = await this.prismaService.user.findUnique({ where: {nick: user}, select: {id: true, advNum: true, roleName: true, lastPromoted: true, bonificationsInRole: true, totalBonifications: true, role: true}});
+
+            if(userInDb.advNum < 2) {
+                promisesToAwait.push(this.prismaService.activityLog.create({
+                    data: {
+                        targetId: userInDb.id,
+                        author: request["user"].nick,
+                        type: "WARNING",
+                        description,
+                        multipleId: actionId
+                    }
+                }))
+
+                promisesToAwait.push(this.prismaService.user.update({
+                    where: {
+                        id: userInDb.id
+                    },
+                    data: {
+                        advNum: userInDb.advNum + 1
+                    }
+                }))
+            }
+
+            if(userInDb.advNum === 2) {
+                const role = await this.prismaService.roles.findUnique({
+                    where: {
+                        roleIdentifier: {
+                            hierarchyKind: userInDb.role.hierarchyKind,
+                            hierarchyPosition: userInDb.role.hierarchyPosition - 1
+                        }
+                    }
+                }) as Roles;
+
+                await this.prismaService.activityLog.create({
+                    data: {
+                        targetId: userInDb.id,
+                        author: request["user"].nick,
+                        type: "WARNING",
+                        description,
+                        multipleId: actionId
+                    }
+                })
+
+                promisesToAwait.push(this.prismaService.activityLog.updateMany({
+                    where: {
+                        targetId: userInDb.id,
+                        type: "WARNING"
+                    },
+                    data: {
+                        isActive: false
+                    }
+                }))
+
+                promisesToAwait.push(this.prismaService.user.update({
+                    where: {
+                        id: userInDb.id
+                    },
+                    data: {
+                        bonificationsInRole: 0,
+                        roleName: role.name,
+                        advNum: 0,
+                        lastPromoted: new Date()
+                    }
+                }))
+
+                promisesToAwait.push(this.prismaService.permissionsObtained.deleteMany({
+                    where: {
+                        userId: userInDb.id,
+                        type: "COURSE"
+                    }
+                }))
+
+                if (role.hierarchyPosition === 5)
+                    promisesToAwait.push(this.prismaService.permissionsObtained.deleteMany({
+                        where: {
+                            userId: userInDb.id,
+                            type: "COURSE"
+                        }
+                    }))
+
+                promisesToAwait.push(this.prismaService.activityLog.create({
+                    data: {
+                        targetId: userInDb.id,
+                        author: "PME System",
+                        type: "DEMOTION",
+                        description: "Acúmulo de 3 advertências.",
+                        newRole: role.name,
+                        multipleId: actionId
+                    }
+                }))
+
+                promisesToAwait.push(this.prismaService.userBeforeAction.create({
+                    data: {
+                        mulipleId: actionId,
+                        roleName: userInDb.roleName,
+                        userLastPromoted: userInDb.lastPromoted,
+                        bonificationsInRole: userInDb.bonificationsInRole,
+                        totalBonifications: userInDb.totalBonifications
+                    }
+                }))
+            }
+        }
+
+        return await Promise.all(promisesToAwait);
+    }
 
     async demoteUser(nick: string, description: string, request: Request) {
         nick = (await this.habboService.findHabboUser(nick)).name;
@@ -611,6 +919,14 @@ export class ActionsService {
                 "Esse usuário não pode ser rebaixado."
             );
 
+        if(nextRole.hierarchyPosition === 5)
+            await this.prismaService.permissionsObtained.deleteMany({
+                where: {
+                    userId: demotedUser.id,
+                    name: "CFO"
+                }
+            })
+
         const removeCourses = this.prismaService.permissionsObtained.deleteMany({
             where: {
                 userId: demotedUser.id,
@@ -624,7 +940,8 @@ export class ActionsService {
             },
             data: {
                 roleName: nextRole.name,
-                bonificationsInRole: 0
+                bonificationsInRole: 0,
+                lastPromoted: new Date()
             }
         });
 
@@ -669,6 +986,7 @@ export class ActionsService {
 
         if (
             !firedUser ||
+            firedUser.role.name === "Recruta" ||
             firedUser.role.hierarchyPosition >
                 firer.role.demoteUntilRolePosition
         ) {

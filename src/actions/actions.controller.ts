@@ -7,7 +7,16 @@ import {
     Res,
     UseGuards
 } from "@nestjs/common";
-import {BonifyDTO, DemoteDTO, DemoteMultipleDTO, FireDTO, PromoteDTO, WarnDTO} from './actions.dtos';
+import {
+    BonifyDTO,
+    DemoteDTO,
+    DemoteMultipleDTO,
+    FireDTO,
+    FireMultipleDTO,
+    PromoteDTO,
+    WarnDTO,
+    WarnMultipleDTO
+} from './actions.dtos';
 import { AuthGuard } from "../auth/auth.guard";
 import { ActionsService } from "./actions.service";
 import { Request, Response } from "express";
@@ -67,8 +76,6 @@ export class ActionsController {
         }
     }
 
-
-    /*
     @UseGuards(AuthGuard)
     @Post("/demote/multiple")
     async demoteMultiple(
@@ -78,16 +85,53 @@ export class ActionsController {
     ) {
         try {
             await this.actionsService.demoteMultiple(
+              req,
               demoteMultipleDTO.demotedNicks,
               demoteMultipleDTO.description,
-              req
             );
             res.send();
         } catch (e) {
             res.status(HttpStatus.BAD_REQUEST).send([e.message]);
         }
     }
-     */
+
+    @UseGuards(AuthGuard)
+    @Post("/fire/multiple")
+    async fireMultiple(
+      @Body() fireMultipleDTO: FireMultipleDTO,
+      @Req() req: Request,
+      @Res() res: Response
+    ) {
+        try {
+            await this.actionsService.fireMultiple(
+              req,
+              fireMultipleDTO.firedNicks,
+              fireMultipleDTO.description,
+            );
+            res.send();
+        } catch (e) {
+            res.status(HttpStatus.BAD_REQUEST).send([e.message]);
+        }
+    }
+
+    @UseGuards(AuthGuard)
+    @Post("/warn/multiple")
+    async warnMultiple(
+      @Body() warnMultipleDTO: WarnMultipleDTO,
+      @Req() req: Request,
+      @Res() res: Response
+    ) {
+        try {
+            await this.actionsService.warnMultiple(
+              req,
+              warnMultipleDTO.warnedNicks,
+              warnMultipleDTO.description,
+            );
+            res.send();
+        } catch (e) {
+            res.status(HttpStatus.BAD_REQUEST).send([e.message]);
+        }
+    }
 
 
     @UseGuards(AuthGuard)

@@ -108,7 +108,7 @@ model ActivityLog {
   newRole             String?
   bonificationsInRole Int?
   oldWarningsAmount   String?
-  multipleId String?
+  multipleId          String?
 }
 
 model Bonification {
@@ -148,6 +148,16 @@ model PermissionsObtained {
   createdAt DateTime       @default(now())
 
   @@unique([userId, name, type], name: "permissionIdentifier")
+}
+
+model userBeforeAction {
+  id                  String   @id @default(uuid())
+  actionId            Int?
+  mulipleId           String?
+  roleName            String
+  userLastPromoted    DateTime
+  bonificationsInRole Int
+  totalBonifications  Int
 }
 
 model userDepartamentRole {

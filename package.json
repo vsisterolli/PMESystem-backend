@@ -41,7 +41,8 @@
         "ionicons": "^7.2.2",
         "moment": "^2.30.1",
         "reflect-metadata": "^0.2.0",
-        "rxjs": "^7.8.1"
+        "rxjs": "^7.8.1",
+        "uuidv4": "^6.2.13"
     },
     "devDependencies": {
         "@nestjs/cli": "^10.0.0",

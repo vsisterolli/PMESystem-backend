@@ -24,6 +24,22 @@ export class DemoteMultipleDTO {
     description: string;
 }
 
+export class FireMultipleDTO {
+    @IsNotEmpty()
+    firedNicks: string[];
+
+    @IsNotEmpty()
+    description: string;
+}
+
+export class WarnMultipleDTO {
+    @IsNotEmpty()
+    warnedNicks: string[];
+
+    @IsNotEmpty()
+    description: string;
+}
+
 export class BonifyDTO {
     @IsNotEmpty()
     user: string;
