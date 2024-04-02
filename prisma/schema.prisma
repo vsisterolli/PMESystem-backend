@@ -108,6 +108,7 @@ model ActivityLog {
   newRole             String?
   bonificationsInRole Int?
   oldWarningsAmount   String?
+  multipleId String?
 }
 
 model Bonification {

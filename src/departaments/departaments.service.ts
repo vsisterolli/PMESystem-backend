@@ -18,6 +18,25 @@ export class DepartamentsService {
         private habboService: HabboService
     ) {}
 
+    getEspRealRole(user, role) {
+        if(role.departamentRoles.powerLevel >= 3)
+            return role;
+
+        if((user.role.hierarchyKind === "MILITARY" && user.role.hierarchyPosition >= 4) || (user.role.hierarchyPosition >= 3 && user.permissionsObtained.find(permission => permission.name === "ESgt")))
+            role.departamentRoles.powerLevel = 2;
+
+        if(user.role.hierarchyPosition >= 4 && user.permissionsObtained.find(permission => permission.name === "ESbt"))
+            role.departamentRoles.powerLevel = 3;
+
+        if(user.role.hierarchyPosition >= 5 && user.role.hierarchyKind === "MILITARY")
+            role.departamentRoles.powerLevel = 3;
+
+        if(user.role.hierarchyKind === "EXECUTIVE" && user.permissionsObtained.find(permission => permission.name === "CFO" || permission.name === "CApEx"))
+            role.departamentRoles.powerLevel = 3;
+
+        return role.departamentRoles;
+    }
+
     async deleteUserRole(request: Request, deleteUserDTO: DeleteUserDTO) {
         let applierRole;
         if (
@@ -71,7 +90,6 @@ export class DepartamentsService {
         if(applierRole.powerLevel <= userRole.powerLevel)
             throw new UnauthorizedException("Você não pode remover esse usuário da função.")
 
-        console.log(userRole)
         // @ts-ignore
         await this.prismaService.userDepartamentRole.delete({
             // @ts-ignore
@@ -266,13 +284,16 @@ export class DepartamentsService {
 
         let userRole = [];
         request["user"].userDepartamentRole.forEach((role) => {
+
             if (
                 role.departamentRoles?.departament === "INS" ||
                 role.departamentRoles?.departament === "EFEX" ||
-                role.departamentRoles?.departament === "CDO" ||
-                role.departamentRoles?.departament === "ESP"
+                role.departamentRoles?.departament === "CDO"
             )
                 userRole.push(role.departamentRoles);
+
+            if(role.departamentRoles.departament === "ESP")
+                userRole.push(this.getEspRealRole(request["user"], role))
         });
 
         if (userRole.length === 0) return [];
@@ -313,11 +334,14 @@ export class DepartamentsService {
             };
         else
             request["user"].userDepartamentRole.forEach((role) => {
-                if (role.departamentRoles.departament === course.departament)
+                if(role.departamentRoles.departament === course.departament)
                     userRole = role.departamentRoles;
+
+                if (role.departamentRoles.departament === course.departament && course.departament === "ESP")
+                    userRole = this.getEspRealRole(request["user"], role);
             });
 
-        if (!userRole)
+        if (!userRole || userRole.powerLevel < course.powerNeeded)
             throw new UnauthorizedException(
                 "Sem permissão para acessar o curso."
             );
@@ -340,6 +364,9 @@ export class DepartamentsService {
             request["user"].userDepartamentRole.forEach((role) => {
                 if (role.departamentRoles.departament === departament)
                     userRole = role.departamentRoles;
+
+                if(role.departamentRoles.departament === departament && departament === "ESP")
+                    userRole = this.getEspRealRole(request["user"], role);
             });
 
         if (!userRole)
@@ -411,17 +438,23 @@ export class DepartamentsService {
             return !isNaN(str) && !isNaN(parseFloat(str));
         };
 
-        const dateToSearch = {
-            begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
-            end: moment(query.search, "DD/MM/YYYY").endOf("day")
+        let dateToSearch = {
+            begin: moment().endOf("day"),
+            end: moment().startOf("day")
         }
+
+        if(moment(query.search, "DD/MM/YYYY").isValid())
+            dateToSearch = {
+                begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
+                end: moment(query.search, "DD/MM/YYYY").endOf("day")
+            }
 
         if (query.search && query.search !== "")
             sql.where["OR"] = [
                 { author: { contains: query.search } },
                 { approved: { contains: query.search } },
                 {
-                    createdAt: {
+                    appliedAt: {
                         gte: dateToSearch.begin,
                         lte: dateToSearch.end
                     }
@@ -435,6 +468,7 @@ export class DepartamentsService {
                 { courseAcronym: { contains: query.search } },
                 { room: { contains: query.search } }
             ];
+
 
         // @ts-ignore
         return this.prismaService.$transaction([
@@ -464,7 +498,10 @@ export class DepartamentsService {
         else
             request["user"].userDepartamentRole.forEach((role) => {
                 if (role.departamentRoles.departament === course.departament)
-                    userRole = role;
+                    userRole = role.departamentRoles;
+
+                if(role.departamentRoles.departament === course.departament && course.departament === "ESP")
+                    userRole = this.getEspRealRole(request["user"], role);
             });
 
         if (!userRole || userRole.powerLevel < course.powerNeeded)

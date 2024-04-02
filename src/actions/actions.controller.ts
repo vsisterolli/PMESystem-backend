@@ -7,7 +7,7 @@ import {
     Res,
     UseGuards
 } from "@nestjs/common";
-import { BonifyDTO, DemoteDTO, FireDTO, PromoteDTO, WarnDTO } from './actions.dtos';
+import {BonifyDTO, DemoteDTO, DemoteMultipleDTO, FireDTO, PromoteDTO, WarnDTO} from './actions.dtos';
 import { AuthGuard } from "../auth/auth.guard";
 import { ActionsService } from "./actions.service";
 import { Request, Response } from "express";
@@ -66,6 +66,29 @@ export class ActionsController {
             res.status(HttpStatus.BAD_REQUEST).send([e.message]);
         }
     }
+
+
+    /*
+    @UseGuards(AuthGuard)
+    @Post("/demote/multiple")
+    async demoteMultiple(
+      @Body() demoteMultipleDTO: DemoteMultipleDTO,
+      @Req() req: Request,
+      @Res() res: Response
+    ) {
+        try {
+            await this.actionsService.demoteMultiple(
+              demoteMultipleDTO.demotedNicks,
+              demoteMultipleDTO.description,
+              req
+            );
+            res.send();
+        } catch (e) {
+            res.status(HttpStatus.BAD_REQUEST).send([e.message]);
+        }
+    }
+     */
+
 
     @UseGuards(AuthGuard)
     @Post("/bonify")

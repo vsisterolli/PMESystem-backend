@@ -53,6 +53,7 @@ export class AuthGuard implements CanActivate {
                             departamentRoles: true
                         }
                     },
+                    permissionsObtained: true,
                     role: true
                 }
             });

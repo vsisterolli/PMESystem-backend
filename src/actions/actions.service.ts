@@ -11,8 +11,9 @@ import {
     PermissionsObtained,
     PermissionsRequired,
     Prisma,
-    Roles
-} from "@prisma/client";
+    Roles, User,
+} from '@prisma/client';
+import { HabboService } from '../habbo/habbo.service';
 
 type UserWithRole = Prisma.UserGetPayload<{
     include: { role: true };
@@ -20,7 +21,9 @@ type UserWithRole = Prisma.UserGetPayload<{
 
 @Injectable()
 export class ActionsService {
-    constructor(private prismaService: PrismaService) {}
+    constructor(private prismaService: PrismaService, private habboService: HabboService) {}
+
+
 
     async getMostBonifiedInWeek() {
         return this.prismaService.$queryRaw(Prisma.sql`
@@ -68,11 +71,16 @@ export class ActionsService {
             return !isNaN(str) && !isNaN(parseFloat(str));
         };
 
-        const dateToSearch = {
-            begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
-            end: moment(query.search, "DD/MM/YYYY").endOf("day")
-
+        let dateToSearch = {
+            begin: moment().endOf("day"),
+            end: moment().startOf("day")
         }
+
+        if(moment(query.search, "DD/MM/YYYY").isValid())
+            dateToSearch = {
+                begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
+                end: moment(query.search, "DD/MM/YYYY").endOf("day")
+            }
 
         if (query.search && query.search !== "")
             sql.where["OR"] = [
@@ -132,11 +140,16 @@ export class ActionsService {
               "Você só pode ver suas próprias postagens."
             );
 
-        const dateToSearch = {
-            begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
-            end: moment(query.search, "DD/MM/YYYY").endOf("day")
-
+        let dateToSearch = {
+            begin: moment().endOf("day"),
+            end: moment().startOf("day")
         }
+
+        if(moment(query.search, "DD/MM/YYYY").isValid())
+            dateToSearch = {
+                begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
+                end: moment(query.search, "DD/MM/YYYY").endOf("day")
+            }
 
         const sql = {
             where: {
@@ -209,6 +222,8 @@ export class ActionsService {
     }
 
     async promoteUser(nick: string, description: string, request: Request) {
+        nick = (await this.habboService.findHabboUser(nick)).name;
+
         const promotedUserPromise = this.prismaService.user.findUnique({
             where: {
                 nick
@@ -394,6 +409,8 @@ export class ActionsService {
     }
 
     async bonifyUser(request: Request, nick: string, reason: string) {
+        nick = (await this.habboService.findHabboUser(nick)).name;
+
         const bonifiedUser = await this.prismaService.user.findUnique({
             where: { nick },
             select: { role: true, id: true }
@@ -452,7 +469,61 @@ export class ActionsService {
 
     }
 
+    /*
+    async demoteMultiple(request: Request, nicks: string[], description) {
+        let RHrole = request["user"].departamentRoles.filter(role => role.departamentRoles.departament === "RH")
+
+        if(request["user"].roleName === "Conselheiro" || request["user"].roleName === "Supremo")
+            RHrole = {
+                powerLevel: 99
+            }
+
+        if(!RHrole)
+            throw new UnauthorizedException("Você não tem permissão para usar o em massa.")
+
+        for (const [index, user] of nicks.entries()) {
+            const userRealNick = (await this.habboService.findHabboUser(user)).name;
+            nicks[index] = userRealNick;
+
+            const userInDb = await this.prismaService.user.findUnique({ where: { nick: userRealNick}, include: { role: true }})
+
+            if(!userInDb)
+                throw new BadRequestException("Um dos usuários não foi encontrado. Por favor confira os nicks antes de prosseguir.")
+
+            if((userInDb.role as Roles).hierarchyKind === "MILITARY" && (userInDb.role as Roles).hierarchyPosition >= 9)
+                throw new BadRequestException("Oficiais-Generais acima do corpo militar não podem ser punidos pelo em massa")
+        }
+
+        const promisesToAwait = [];
+        for (const user of nicks) {
+            const userInDb = await this.prismaService.user.findUnique({ where: {nick: user}, include: {id: true, role: true}}) as User;
+
+            // @ts-ignore
+            const role = await this.prismaService.roles.findUnique({
+                where: {
+                    roleIdentifier: {
+                        hierarchyKind: (userInDb.role as Roles).hierarchyKind,
+                        hierarchyPosition: (userInDb.role as Roles).hierarchyPosition - 1
+                    }
+                }
+            })
+
+            promisesToAwait.push(this.prismaService.user.update({
+                where: {
+                    id: userInDb.id
+                },
+                data: {
+                    totalBonifications: 0,
+
+                }
+            }))
+        }
+
+    }
+     */
+
     async demoteUser(nick: string, description: string, request: Request) {
+        nick = (await this.habboService.findHabboUser(nick)).name;
         const demotedUserPromise = this.prismaService.user.findUnique({
             where: {
                 nick
@@ -570,6 +641,8 @@ export class ActionsService {
         await Promise.all([removeCourses, promotePromise, registerPromise]);
     }
     async fireUser(nick: string, description: string, request: Request) {
+        nick = (await this.habboService.findHabboUser(nick)).name;
+
         const firedUserPromise = this.prismaService.user.findUnique({
             where: {
                 nick
@@ -684,6 +757,8 @@ export class ActionsService {
     }
 
     async warnUser(nick: string, description: string, request: Request) {
+        nick = (await this.habboService.findHabboUser(nick)).name;
+
         const warnedUserPromise = this.prismaService.user.findUnique({
             where: {
                 nick

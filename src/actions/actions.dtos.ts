@@ -16,6 +16,14 @@ export class DemoteDTO {
     description: string;
 }
 
+export class DemoteMultipleDTO {
+    @IsNotEmpty()
+    demotedNicks: string[];
+
+    @IsNotEmpty()
+    description: string;
+}
+
 export class BonifyDTO {
     @IsNotEmpty()
     user: string;
