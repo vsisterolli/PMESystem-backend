@@ -507,11 +507,12 @@ export class DepartamentsService {
         if (!userRole || userRole.powerLevel < course.powerNeeded)
             throw new UnauthorizedException("Sem autorização.");
 
-        for (const user of data.approved) {
+        let totalStudents = 0;
+        for (const [index, user] of data.approved.entries()) {
             if(user.length <= 1)
                 continue;
 
-            const index = data.approved.indexOf(user);
+            totalStudents += 1;
             try {
                 data.approved[index] = (
                     await this.habboService.findHabboUser(user)
@@ -521,18 +522,63 @@ export class DepartamentsService {
                     "Um dos aprovados não existe no habbo, confirme os nicks antes de tentar novamente."
                 );
             }
+
+            const userObj = await this.prismaService.user.findUnique({
+                where: {nick: user},
+                select: {
+                    role: true,
+                    permissionsObtained: true,
+                    roleName: true
+                }
+            });
+
+            if (data.courseAcronym !== "CFPM" && !userObj)
+                throw new BadRequestException(
+                  "Um dos usuários não pode receber o curso por não estar cadastrado no system."
+                );
+
+            if(!userObj)
+                continue;
+
+            if(userObj && data.courseAcronym === "CFPM" && userObj.roleName !== "Recruta")
+                throw new BadRequestException("Um dos aprovados é militar ativo e não pode receber o CFPM.")
+
+            if(data.courseAcronym === "ECb" && userObj.roleName !== "Cabo")
+                throw new BadRequestException("Apenas cabos podem receber o ECb.")
+
+            if(data.courseAcronym === "ESgt" && userObj.roleName !== "Sargento")
+                throw new BadRequestException("Apenas sargentos podem receber o ESgt.")
+
+            if(data.courseAcronym === "ESbt" && userObj.roleName !== "Subtenente")
+                throw new BadRequestException("Apenas subtenentes podem receber o ESbt.")
+
+            if(data.courseAcronym === "CPP" && userObj.roleName !== "Cabo" && userObj.roleName !== "Sargento")
+                throw new BadRequestException("Apenas cabos e sargentos podem receber o CPP.")
+
+            if(data.courseAcronym === "COrt" && userObj.roleName !== "Cabo" && userObj.roleName !== "Sargento")
+                throw new BadRequestException("Apenas cabos e sargentos podem receber o COrt.")
+
+            // @ts-ignore
+            if(data.courseAcronym === "CFO" && userObj.role.hierarchyPosition <= 4)
+                throw new BadRequestException("Apenas aspirantes e equivalências acima podem receber o CFO.")
+
+            // @ts-ignore
+            if((data.courseAcronym === "CFPE" || data.courseAcronym === "CApEx" || data.courseAcronym === "CFC") && userObj.role.hierarchyKind !== "EXECUTIVE")
+                throw new BadRequestException("Esse curso é restrito aos executivos.")
+
+            // @ts-ignore
+            if(userObj.permissionsObtained.filter(permission => permission.name === data.courseAcronym && permission.type === "COURSE").length > 0)
+                throw new BadRequestException("Algum dos aprovados já possui o curso ativo.")
         }
 
+        for (const user of data.failed)
+            if(user.length >= 2)
+                totalStudents++;
+
+        if(totalStudents === 0)
+            throw new BadRequestException("Coloque o nick de pelo menos um aluno.")
+
         if (data.courseAcronym === "CFPM") {
-
-            for(const user of data.approved) {
-                const userObj = await this.prismaService.user.findUnique({
-                    where: {nick: user}
-                }) as User;
-
-                if(userObj && userObj.roleName !== "Recruta")
-                    throw new BadRequestException("Um dos aprovados é militar ativo e não pode receber o CFPM.")
-            }
 
             for (const user of data.approved) {
                 if(user.length <= 1)
@@ -564,10 +610,6 @@ export class DepartamentsService {
             const userObj = (await this.prismaService.user.findUnique({
                 where: { nick: user }
             })) as User;
-            if (!userObj)
-                throw new BadRequestException(
-                    "Um dos usuários não pode receber o curso por não estar cadastrado no system."
-                );
 
             permissionObtainedData.push({
                 userId: userObj.id,
@@ -596,30 +638,25 @@ export class DepartamentsService {
             });
         }
 
-        try {
-            await Promise.all([
-                ...removePromise,
-                this.prismaService.permissionsObtained.createMany({
-                    data: permissionObtainedData
-                }),
-                this.prismaService.activityLog.createMany({
-                    data: activityLogData
-                }),
-                this.prismaService.classes.create({
-                    data: {
-                        courseAcronym: course.acronym,
-                        author: request["user"].nick,
-                        approved: data.approved.join(" | "),
-                        failed: data.failed.join(" | "),
-                        room: data.room,
-                        departament: course.departament
-                    }
-                })
-            ]);
-        } catch {
-            throw new BadRequestException(
-                "Algum dos usuários já tem esse curso ativo."
-            );
-        }
+        await Promise.all([
+            ...removePromise,
+            this.prismaService.permissionsObtained.createMany({
+                data: permissionObtainedData
+            }),
+            this.prismaService.activityLog.createMany({
+                data: activityLogData
+            }),
+            this.prismaService.classes.create({
+                data: {
+                    courseAcronym: course.acronym,
+                    author: request["user"].nick,
+                    approved: data.approved.join(" | "),
+                    failed: data.failed.join(" | "),
+                    room: data.room,
+                    departament: course.departament
+                }
+            })
+        ]);
+
     }
 }
