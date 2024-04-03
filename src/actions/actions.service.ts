@@ -32,7 +32,7 @@ export class ActionsService {
             FROM "Bonification" b
             JOIN "User" u
             ON u.id = b."targetId"
-            WHERE b."createdAt" >= ${moment().startOf("week").toDate()}
+            WHERE b."createdAt" >= ${moment().startOf("week").add(3, "hours").toDate()}
             GROUP BY u.nick
             ORDER BY totalGains DESC
             LIMIT 5;   
@@ -142,8 +142,8 @@ export class ActionsService {
             );
 
         let dateToSearch = {
-            begin: moment(query.search, "DD/MM/YYYY").startOf("day"),
-            end: moment(query.search, "DD/MM/YYYY").endOf("day")
+            begin: moment().endOf("day"),
+            end: moment().startOf("day")
         }
 
         if(moment(query.search, "DD/MM/YYYY").isValid())
@@ -387,7 +387,8 @@ export class ActionsService {
             },
             data: {
                 roleName: nextRole.name,
-                bonificationsInRole: 0
+                bonificationsInRole: 0,
+                lastPromoted: new Date()
             }
         });
 
@@ -420,7 +421,7 @@ export class ActionsService {
         if(!bonifiedUser || (bonifiedUser.role.hierarchyPosition > request["user"].role.gratifyUntilRolePosition && reason !== "Recrutamento") )
             throw new BadRequestException("Você não pode bonificar esse usuário.")
 
-        const today = moment().startOf("day")
+        const today = moment().startOf("day").add(3, "hours")
 
         // @ts-ignore
         const bonifiedTodayCount = await this.prismaService.bonification.findMany({
@@ -437,7 +438,7 @@ export class ActionsService {
         })
 
         if(bonifiedTodayCount.length >= 3)
-            throw new BadRequestException("O policial já foi gratificado 3x hoje.")
+            throw new BadRequestException("O policial já foi bonificado 3x hoje.")
 
         if(bonifiedTodayCount.length && reason !== "Recrutamento") {
             const lastBonified = bonifiedTodayCount.find(element => element.reason !== "Recrutamento")
