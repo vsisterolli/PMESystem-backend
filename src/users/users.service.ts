@@ -473,6 +473,7 @@ export class UsersService {
             }
         })) as User;
 
+
         if (user) {
             await this.prisma.user.update({
                 where: {

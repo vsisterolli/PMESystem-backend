@@ -1,20 +1,10 @@
-import {
-    BadRequestException,
-    ForbiddenException,
-    Injectable,
-    UnauthorizedException,
-} from '@nestjs/common';
-import { PrismaService } from "../prisma.service";
-import { Request } from "express";
+import {BadRequestException, ForbiddenException, Injectable, UnauthorizedException,} from '@nestjs/common';
+import {PrismaService} from "../prisma.service";
+import {Request} from "express";
 import * as moment from "moment";
-import {
-    PermissionsObtained,
-    PermissionsRequired,
-    Prisma,
-    Roles, User,
-} from '@prisma/client';
-import { HabboService } from '../habbo/habbo.service';
-import { uuid } from 'uuidv4';
+import {PermissionsObtained, PermissionsRequired, Prisma, Roles,} from '@prisma/client';
+import {HabboService} from '../habbo/habbo.service';
+import {uuid} from 'uuidv4';
 
 type UserWithRole = Prisma.UserGetPayload<{
     include: { role: true };
@@ -223,7 +213,12 @@ export class ActionsService {
     }
 
     async promoteUser(nick: string, description: string, request: Request) {
-        nick = (await this.habboService.findHabboUser(nick)).name;
+
+        try {
+            nick = (await this.habboService.findHabboUser(nick)).name;
+        } catch {
+            throw new BadRequestException("Usuário não foi encontrado no Habbo.")
+        }
 
         const promotedUserPromise = this.prismaService.user.findUnique({
             where: {
@@ -326,6 +321,11 @@ export class ActionsService {
             if(permission.name === "CApEx")
                 hasCapex = true;
         })
+        let hasCfo = false;
+        promoterObtainedPermissions.forEach(permission => {
+            if(permission.name === "CFO")
+                hasCapex = true;
+        })
 
         // @ts-ignore
         if (
@@ -341,7 +341,7 @@ export class ActionsService {
 
         // @ts-ignore
         if (
-            !(promotedUser.roleName === "Soldado" && hasCapex) && !(promoter.roleName === "Aspirante a Oficial" && promotedUser.roleName === "Soldado") &&
+            !(promotedUser.roleName === "Soldado" && hasCfo) && !(promotedUser.roleName === "Soldado" && hasCapex) && !(promoter.roleName === "Aspirante a Oficial" && promotedUser.roleName === "Soldado") &&
             this.missingPermissions(
                 promoterRequiredCourses,
                 promoterObtainedPermissions
@@ -486,12 +486,10 @@ export class ActionsService {
             if(user.length <= 1)
                 continue;
 
-            let userRealNick;
+            let userRealNick = user;
             try {
                 userRealNick = (await this.habboService.findHabboUser(user)).name;
-            } catch {
-                throw new BadRequestException(user + " não foi encontrado no habbo.")
-            }
+            } catch {}
             nicks[index] = userRealNick;
 
             const userInDb = await this.prismaService.user.findUnique({ where: { nick: userRealNick}, include: { role: true }})
@@ -603,12 +601,10 @@ export class ActionsService {
             if(user.length <= 1)
                 continue;
 
-            let userRealNick;
+            let userRealNick = user;
             try {
                 userRealNick = (await this.habboService.findHabboUser(user)).name;
-            } catch {
-                throw new BadRequestException(user + " não foi encontrado no habbo.")
-            }
+            } catch {}
             nicks[index] = userRealNick;
 
             const userInDb = await this.prismaService.user.findUnique({ where: { nick: userRealNick}, include: { role: true }})
@@ -696,12 +692,10 @@ export class ActionsService {
             if(user.length <= 1)
                 continue;
 
-            let userRealNick;
+            let userRealNick = user;
             try {
                 userRealNick = (await this.habboService.findHabboUser(user)).name;
-            } catch {
-                throw new BadRequestException(user + " não foi encontrado no habbo.")
-            }
+            } catch {}
             nicks[index] = userRealNick;
 
             const userInDb = await this.prismaService.user.findUnique({ where: { nick: userRealNick}, include: { role: true }})
@@ -832,7 +826,10 @@ export class ActionsService {
     }
 
     async demoteUser(nick: string, description: string, request: Request) {
-        nick = (await this.habboService.findHabboUser(nick)).name;
+        try {
+            nick = (await this.habboService.findHabboUser(nick)).name;
+        } catch {}
+
         const demotedUserPromise = this.prismaService.user.findUnique({
             where: {
                 nick
@@ -959,7 +956,9 @@ export class ActionsService {
         await Promise.all([removeCourses, promotePromise, registerPromise]);
     }
     async fireUser(nick: string, description: string, request: Request) {
-        nick = (await this.habboService.findHabboUser(nick)).name;
+        try {
+            nick = (await this.habboService.findHabboUser(nick)).name;
+        } catch {}
 
         const firedUserPromise = this.prismaService.user.findUnique({
             where: {
@@ -1076,7 +1075,9 @@ export class ActionsService {
     }
 
     async warnUser(nick: string, description: string, request: Request) {
-        nick = (await this.habboService.findHabboUser(nick)).name;
+        try {
+            nick = (await this.habboService.findHabboUser(nick)).name;
+        } catch {}
 
         const warnedUserPromise = this.prismaService.user.findUnique({
             where: {
